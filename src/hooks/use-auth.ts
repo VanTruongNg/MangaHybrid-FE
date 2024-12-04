@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import type { User } from '@/types/user';
 import { useCallback } from 'react';
+import { connectSocket, disconnectSocket } from '@/lib/socket';
 
 interface LoginPayload {
   email: string;
@@ -18,6 +19,16 @@ interface LoginResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+const QUERY_KEYS = {
+  user: ['user']
+} as const;
+
+const QUERY_CONFIG = {
+  staleTime: 5 * 60 * 1000,
+  retry: false,
+  refetchOnMount: false,
+} as const;
 
 export function useAuth() {
   const { user, setUser, setAccessToken, setRefreshToken, logout: logoutStore } = useAuthStore();
@@ -36,12 +47,10 @@ export function useAuth() {
   }, [setUser, logoutStore]);
 
   const { isLoading: isLoadingUser } = useQuery({
-    queryKey: ['user'],
+    queryKey: QUERY_KEYS.user,
     queryFn: fetchUser,
     enabled: !!localStorage.getItem('accessToken') && !user,
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-    refetchOnMount: false,
+    ...QUERY_CONFIG
   });
 
   const handleAuthSuccess = useCallback(async (tokens: LoginResponse) => {
@@ -50,7 +59,8 @@ export function useAuth() {
     
     try {
       const userData = await fetchUser();
-      queryClient.setQueryData(['user'], userData);
+      queryClient.setQueryData(QUERY_KEYS.user, userData);
+      connectSocket();
       router.push('/');
     } catch (error) {
       logoutStore();
@@ -59,22 +69,19 @@ export function useAuth() {
   }, [setAccessToken, setRefreshToken, fetchUser, queryClient, router, logoutStore]);
 
   const loginMutation = useMutation({
-    mutationFn: async (payload: LoginPayload) => {
-      const { data } = await api.post<LoginResponse>('/auth/login', payload);
-      return data;
-    },
+    mutationFn: (payload: LoginPayload) => 
+      api.post<LoginResponse>('/auth/login', payload).then(res => res.data),
     onSuccess: handleAuthSuccess,
   });
 
   const googleLoginMutation = useMutation({
-    mutationFn: async (payload: GoogleLoginPayload) => {
-      const { data } = await api.post<LoginResponse>('/auth/google', payload);
-      return data;
-    },
+    mutationFn: (payload: GoogleLoginPayload) => 
+      api.post<LoginResponse>('/auth/google', payload).then(res => res.data),
     onSuccess: handleAuthSuccess,
   });
 
   const logout = useCallback(async () => {
+    disconnectSocket();
     await logoutStore();
     queryClient.clear();
     router.replace('/login');

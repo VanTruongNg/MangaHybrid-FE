@@ -1,12 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/store/auth.store';
-import { usePathname, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/axios';
-import type { User } from '@/types/user';
-import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/auth.store";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/axios";
+import type { User } from "@/types/user";
+import { AxiosError } from "axios";
+import { SessionExpiredDialog } from "@/components/auth/session-expired-dialog";
+import { connectSocket } from "@/lib/socket";
+
+const SESSION_CHECK_CONFIG = {
+  retry: false,
+  refetchOnWindowFocus: false,
+  refetchInterval: 5 * 60 * 1000,
+} as const;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setAccessToken } = useAuthStore();
@@ -14,22 +22,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Check session khi mount component
   useQuery({
-    queryKey: ['session-check'],
+    queryKey: ["session-check"],
     queryFn: async () => {
       try {
-        const { data } = await api.get<User>('/user/me');
+        const { data } = await api.get<User>("/user/me");
         setUser(data);
+        connectSocket();
         return data;
-      } catch (error: any) {
-        if (error.response?.status === 401) {
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
           try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            const { data } = await api.post('/auth/refresh-token', { refreshToken });
+            const refreshToken = localStorage.getItem("refreshToken");
+            const { data } = await api.post("/auth/refresh-token", {
+              refreshToken,
+            });
             setAccessToken(data.accessToken);
-            
-            const { data: userData } = await api.get<User>('/user/me');
+
+            const { data: userData } = await api.get<User>("/user/me");
             setUser(userData);
             return userData;
           } catch {
@@ -39,18 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
     },
-    enabled: !!localStorage.getItem('accessToken'),
-    retry: false,
-    refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000,
+    enabled: !!localStorage.getItem("accessToken"),
+    ...SESSION_CHECK_CONFIG,
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     if (token) {
       setAccessToken(token);
-      if (pathname === '/login') {
-        router.replace('/');
+      if (pathname === "/login") {
+        router.replace("/");
       }
     }
   }, [setAccessToken, pathname, router]);
@@ -61,4 +69,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       <SessionExpiredDialog isOpen={sessionExpired} />
     </>
   );
-} 
+}
