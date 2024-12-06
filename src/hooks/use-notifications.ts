@@ -9,26 +9,32 @@ export function useNotifications() {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      await api.patch(`/notifications/${notificationId}/read`);
+      const response = await api.patch(`/notifications/${notificationId}/read`);
+      return response.data;
     },
     onMutate: async (notificationId) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
 
+      // Snapshot the previous value
       const previousNotifications = queryClient.getQueryData<Notification[]>(['notifications']);
 
+      // Optimistically update notifications
       setNotifications((notifications) => 
         notifications.map(n => 
           n._id === notificationId ? { ...n, isRead: true } : n
         )
       );
 
+      // Remove from unread notifications
       setUnreadNotifications((notifications) => 
         notifications.filter(n => n._id !== notificationId)
       );
 
       return { previousNotifications };
     },
-    onError: (_, __, context) => {
+    onError: (error, _, context) => {
+      console.error('Mark as read error:', error);
       // Rollback on error
       if (context?.previousNotifications) {
         setNotifications(context.previousNotifications);
@@ -38,6 +44,7 @@ export function useNotifications() {
       }
     },
     onSettled: () => {
+      // Refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });

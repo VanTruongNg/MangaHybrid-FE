@@ -4,14 +4,15 @@ import { useNotificationStore } from '@/store/notification.store';
 import { handleInitializeSocket, handleNewNotification, handleNewMessage } from '@/lib/socket-handlers';
 import { socket } from '@/lib/socket';
 import type { Notification, PublicMessage } from '@/types/socket';
+import { useChatStore } from '@/store/chat.store';
 
 export function useSocket() {
   const { user } = useAuthStore();
   const { 
     setUnreadNotifications, 
-    setPublicMessages,
     setNotifications,
   } = useNotificationStore();
+  const { setPublicMessages: setChatPublicMessages } = useChatStore();
 
   const handlersRef = useRef<(() => void)[]>([]);
 
@@ -23,19 +24,17 @@ export function useSocket() {
     publicMessages: PublicMessage[];
   }) => {
     setUnreadNotifications(unreadNotifications);
-    setPublicMessages(publicMessages);
-  }, [setUnreadNotifications, setPublicMessages]);
+    setChatPublicMessages(publicMessages);
+  }, [setUnreadNotifications, setChatPublicMessages]);
 
   const handleNotification = useCallback((notification: Notification) => {
-    console.log('[Socket] Received notification:', notification);
     setUnreadNotifications((prev) => [notification, ...prev]);
     setNotifications((prev) => prev.length > 0 ? [notification, ...prev] : prev);
   }, [setUnreadNotifications, setNotifications]);
 
   const handleMessage = useCallback((message: PublicMessage) => {
-    console.log('[Socket] Received new message:', message);
-    setPublicMessages((prev) => [...prev, message]);
-  }, [setPublicMessages]);
+    setChatPublicMessages((prev) => [...prev, message]);
+  }, [setChatPublicMessages]);
 
   const setupSocketHandlers = useCallback(() => {
     handlersRef.current.forEach(cleanup => cleanup());
