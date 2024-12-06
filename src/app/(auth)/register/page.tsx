@@ -40,6 +40,14 @@ interface RegisterResponse {
   verificationCode: string;
 }
 
+interface RegisterError extends Error {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export default function RegisterPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -66,10 +74,14 @@ export default function RegisterPage() {
       });
       return response.data;
     },
-    onError: (error: any) => {
+    onError: (error: RegisterError) => {
       if (error.response?.data?.message) {
         form.setError('root', { 
           message: error.response.data.message 
+        });
+      } else {
+        form.setError('root', { 
+          message: 'Có lỗi xảy ra, vui lòng thử lại sau' 
         });
       }
     },

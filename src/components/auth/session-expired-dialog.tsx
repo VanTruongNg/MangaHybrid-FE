@@ -11,34 +11,35 @@ import {
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
+import { useEffect } from "react";
 
 interface Props {
   isOpen: boolean;
+  onClose: () => void;
 }
 
-export function SessionExpiredDialog({ isOpen }: Props) {
+export function SessionExpiredDialog({ isOpen, onClose }: Props) {
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const { logout } = useAuthStore();
 
-  const handleLogin = async () => {
-    try {
-      await logout();
-      router.replace('/login');
-    } catch {
-      router.replace('/login');
+  useEffect(() => {
+    if (isOpen) {
+      logout();
     }
+  }, [isOpen, logout]);
+
+  const handleLogin = () => {
+    onClose();
+    router.push('/login');
   };
 
-  const handleDismiss = async () => {
-    try {
-      await logout();
-    } catch {
-      // Ignore error
-    }
+  const handleDismiss = () => {
+    onClose();
+    router.push('/');
   };
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Phiên đăng nhập hết hạn</DialogTitle>

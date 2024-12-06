@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
 import api from "@/lib/axios";
@@ -25,32 +24,34 @@ interface Props {
 }
 
 export function VerifyEmailDialog({ isOpen, onClose, email, password }: Props) {
-  const [verificationCode, setVerificationCode] = useState('');
-  const [error, setError] = useState('');
-  const router = useRouter();
+  const [verificationCode, setVerificationCode] = useState("");
+  const [error, setError] = useState("");
   const { login } = useAuth();
 
   const verifyMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.get(`/auth/email/verify/${email}/${verificationCode}`);
+      const response = await api.get(
+        `/auth/email/verify/${email}/${verificationCode}`
+      );
       return response.data;
     },
     onSuccess: async () => {
-      // Sau khi xác thực thành công, tự động đăng nhập
       await login({ email, password });
       onClose();
     },
-    onError: (error: any) => {
-      setError(error.response?.data?.message || 'Có lỗi xảy ra');
-    }
+    onError: (
+      error: Error & { response?: { data?: { message?: string } } }
+    ) => {
+      setError(error.response?.data?.message || "Có lỗi xảy ra");
+    },
   });
 
   const handleVerify = () => {
     if (!verificationCode) {
-      setError('Vui lòng nhập mã xác thực');
+      setError("Vui lòng nhập mã xác thực");
       return;
     }
-    setError('');
+    setError("");
     verifyMutation.mutate();
   };
 
@@ -62,7 +63,7 @@ export function VerifyEmailDialog({ isOpen, onClose, email, password }: Props) {
           <DialogDescription asChild>
             <div className="space-y-2">
               <p>
-                Vui lòng nhập mã xác thực đã được gửi đến email{' '}
+                Vui lòng nhập mã xác thực đã được gửi đến email{" "}
                 <span className="font-medium">{email}</span>
               </p>
             </div>
@@ -77,34 +78,29 @@ export function VerifyEmailDialog({ isOpen, onClose, email, password }: Props) {
             disabled={verifyMutation.isPending}
           />
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter className="flex gap-2 sm:justify-end">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={verifyMutation.isPending}
           >
             Để sau
           </Button>
-          <Button 
-            onClick={handleVerify}
-            disabled={verifyMutation.isPending}
-          >
+          <Button onClick={handleVerify} disabled={verifyMutation.isPending}>
             {verifyMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Đang xác thực...
               </>
             ) : (
-              'Xác thực'
+              "Xác thực"
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

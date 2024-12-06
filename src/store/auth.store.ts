@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '@/types/user';
 import api from '@/lib/axios';
+import { isBrowser } from '@/lib/utils';
 
 interface AuthStore {
   user: User | null;
@@ -13,6 +14,23 @@ interface AuthStore {
   logout: () => Promise<void>;
 }
 
+const getStorageToken = (key: string) => {
+  if (isBrowser()) {
+    return localStorage.getItem(key);
+  }
+  return null;
+};
+
+const setStorageToken = (key: string, value: string | null) => {
+  if (isBrowser()) {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }
+};
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
@@ -21,32 +39,24 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: null,
       setUser: (user) => set({ user }),
       setAccessToken: (token) => {
-        if (token) {
-          localStorage.setItem('accessToken', token);
-        } else {
-          localStorage.removeItem('accessToken');
-        }
+        setStorageToken('accessToken', token);
         set({ accessToken: token });
       },
       setRefreshToken: (token) => {
-        if (token) {
-          localStorage.setItem('refreshToken', token);
-        } else {
-          localStorage.removeItem('refreshToken');
-        }
+        setStorageToken('refreshToken', token);
         set({ refreshToken: token });
       },
       logout: async () => {
         try {
-          const token = localStorage.getItem('accessToken');
+          const token = getStorageToken('accessToken');
           if (token) {
             await api.post('/auth/logout');
           }
-        } catch (error) {
+        } catch {
           // Ignore error
         } finally {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          setStorageToken('accessToken', null);
+          setStorageToken('refreshToken', null);
           set({ 
             user: null, 
             accessToken: null, 
@@ -57,6 +67,25 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => ({
+        getItem: (key) => {
+          if (isBrowser()) {
+            return localStorage.getItem(key);
+          }
+          return null;
+        },
+        setItem: (key, value) => {
+          if (isBrowser()) {
+            localStorage.setItem(key, value);
+          }
+        },
+        removeItem: (key) => {
+          if (isBrowser()) {
+            localStorage.removeItem(key);
+          }
+        },
+      })),
+      skipHydration: true,
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

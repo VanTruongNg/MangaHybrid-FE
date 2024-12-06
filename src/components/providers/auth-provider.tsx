@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import type { User } from "@/types/user";
 import { AxiosError } from "axios";
 import { SessionExpiredDialog } from "@/components/auth/session-expired-dialog";
 import { connectSocket } from "@/lib/socket";
+import { useSocket } from "@/hooks/use-socket";
 
 const SESSION_CHECK_CONFIG = {
   retry: false,
@@ -22,6 +23,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  useSocket();
+
+  const handleSessionExpired = useCallback(() => {
+    setSessionExpired(true);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
+
   useQuery({
     queryKey: ["session-check"],
     queryFn: async () => {
@@ -34,6 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error instanceof AxiosError && error.response?.status === 401) {
           try {
             const refreshToken = localStorage.getItem("refreshToken");
+            if (!refreshToken) {
+              handleSessionExpired();
+              throw new Error("No refresh token");
+            }
+
             const { data } = await api.post("/auth/refresh-token", {
               refreshToken,
             });
@@ -41,9 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const { data: userData } = await api.get<User>("/user/me");
             setUser(userData);
+            connectSocket();
             return userData;
           } catch {
-            setSessionExpired(true);
+            handleSessionExpired();
           }
         }
         throw error;
@@ -66,7 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <SessionExpiredDialog isOpen={sessionExpired} />
+      <SessionExpiredDialog
+        isOpen={sessionExpired}
+        onClose={handleCloseDialog}
+      />
     </>
   );
 }
