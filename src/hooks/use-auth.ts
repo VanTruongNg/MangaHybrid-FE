@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
@@ -24,12 +24,6 @@ const QUERY_KEYS = {
   user: ['user']
 } as const;
 
-const QUERY_CONFIG = {
-  staleTime: 5 * 60 * 1000,
-  retry: false,
-  refetchOnMount: false,
-} as const;
-
 export function useAuth() {
   const { user, setUser, setAccessToken, setRefreshToken, logout: logoutStore } = useAuthStore();
   const router = useRouter();
@@ -46,14 +40,8 @@ export function useAuth() {
     }
   }, [setUser, logoutStore]);
 
-  const { isLoading: isLoadingUser } = useQuery({
-    queryKey: QUERY_KEYS.user,
-    queryFn: fetchUser,
-    enabled: !!localStorage.getItem('accessToken') && !user,
-    ...QUERY_CONFIG
-  });
-
   const handleAuthSuccess = useCallback(async (tokens: LoginResponse) => {
+    console.log('Setting tokens:', tokens);
     setAccessToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
     
@@ -63,6 +51,7 @@ export function useAuth() {
       connectSocket();
       router.push('/');
     } catch (error) {
+      console.error('Error fetching user:', error);
       logoutStore();
       throw error;
     }
@@ -90,7 +79,7 @@ export function useAuth() {
   return {
     login: loginMutation.mutate,
     googleLogin: googleLoginMutation.mutate,
-    isLoading: loginMutation.isPending || googleLoginMutation.isPending || isLoadingUser,
+    isLoading: loginMutation.isPending || googleLoginMutation.isPending,
     user,
     logout,
   };

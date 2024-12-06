@@ -47,53 +47,54 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (
-      error.response?.status !== 401 || 
-      originalRequest.url === '/auth/refresh-token' ||
-      originalRequest._retry
+      error.response?.status === 401 && 
+      !originalRequest.url?.includes('/auth/refresh-token') &&
+      !originalRequest._retry
     ) {
-      return Promise.reject(error);
-    }
+      if (isRefreshing) {
+        try {
+          const token = await new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          });
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        } catch (err) {
+          return Promise.reject(err);
+        }
+      }
 
-    if (isRefreshing) {
+      originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
-        const token = await new Promise<string>((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
+        const refreshToken = useAuthStore.getState().refreshToken;
+        if (!refreshToken) {
+          throw new Error('No refresh token');
+        }
+
+        const { data } = await api.post('/auth/refresh-token', {
+          refreshToken: refreshToken
         });
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+        const newAccessToken = data.accessToken;
+        const newRefreshToken = data.refreshToken;
+        
+        useAuthStore.getState().setAccessToken(newAccessToken);
+        useAuthStore.getState().setRefreshToken(newRefreshToken);
+        
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        
+        processQueue(null, newAccessToken);
+        
         return api(originalRequest);
-      } catch (err) {
-        return Promise.reject(err);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
-    originalRequest._retry = true;
-    isRefreshing = true;
-
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token');
-      }
-
-      const { data } = await api.post('/auth/refresh-token', { refreshToken });
-      const newAccessToken = data.accessToken;
-      
-      useAuthStore.getState().setAccessToken(newAccessToken);
-      
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-      
-      processQueue(null, newAccessToken);
-      
-      return api(originalRequest);
-    } catch (refreshError) {
-      processQueue(refreshError, null);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      useAuthStore.getState().logout();
-      return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
-    }
+    return Promise.reject(error);
   }
 );
 
