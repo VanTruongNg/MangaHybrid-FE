@@ -133,8 +133,9 @@ export function MangaCarousel() {
                 <Image
                   src={manga.bannerImg ?? manga.coverImg ?? "/placeholder.jpg"}
                   alt={manga.title}
-                  fill
-                  className="object-cover object-top"
+                  width={1920}
+                  height={912}
+                  className="w-full h-full object-cover"
                   sizes="(max-width: 1400px) 65vw"
                   priority
                   quality={100}
