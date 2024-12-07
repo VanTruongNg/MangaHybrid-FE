@@ -23,19 +23,18 @@ export function Navbar() {
   }, [isScrolled]);
 
   const commonStyles = cn(
+    "transition-colors duration-150",
     isScrolled
-      ? "text-foreground hover:text-foreground/80"
-      : "text-primary-foreground hover:text-primary-foreground/90"
+      ? "text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+      : "text-slate-200 hover:text-white dark:text-slate-300 dark:hover:text-white"
   );
 
   return (
     <header
       data-scrolled={isScrolled}
       className={cn(
-        "sticky top-0 z-50 w-full",
-        isScrolled
-          ? "border-b bg-background/60 backdrop-blur-sm"
-          : "bg-transparent"
+        "sticky top-0 z-50 w-full transition-all duration-150",
+        isScrolled ? "bg-background/80 backdrop-blur-sm" : "bg-transparent"
       )}
     >
       <div className="container relative flex h-14 items-center justify-between">
@@ -46,7 +45,10 @@ export function Navbar() {
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <Link href="/" className="flex items-center space-x-2">
             <span
-              className={cn("font-bold text-xl tracking-wider", commonStyles)}
+              className={cn(
+                "font-bold text-xl tracking-wider transition-colors duration-150",
+                commonStyles
+              )}
             >
               MANGA HYBRID
             </span>

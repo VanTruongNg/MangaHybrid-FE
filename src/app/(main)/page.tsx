@@ -12,9 +12,9 @@ export default function Home() {
   if (isError) return <div>Error loading data</div>;
 
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative min-h-screen">
       {/* Hero Section with Custom Gradient */}
-      <div className="fixed top-0 inset-x-0 w-full h-[65vh]">
+      <div className="relative w-full h-[65vh] -mt-[64px]">
         {/* Main Gradient */}
         <div
           className="absolute inset-0 brightness-75 transition-[background] duration-1000"
@@ -25,9 +25,16 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <main className="relative flex-1">
-        <div className="absolute left-1/2 top-[60vh] -translate-x-1/2 -translate-y-[80%] w-full">
+      <main>
+        <div className="absolute left-1/2 top-[65vh] -translate-x-1/2 -translate-y-[80%] w-full">
           <MangaCarousel />
+        </div>
+
+        {/* Thêm nội dung để test scroll */}
+        <div className="pt-[80vh] space-y-8 p-8">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="h-40 rounded-lg border bg-card" />
+          ))}
         </div>
       </main>
     </div>
