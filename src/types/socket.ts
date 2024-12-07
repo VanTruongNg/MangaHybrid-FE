@@ -37,6 +37,26 @@ export interface PublicMessage {
   createdAt: string;
 }
 
+export interface MessageWithTempId extends PublicMessage {
+  tempId: string;
+}
+
+export interface MessageError {
+  tempId: string;
+  error: string;
+}
+
+export interface TempMessage extends Omit<PublicMessage, '_id'> {
+  tempId: string;
+  isSending?: boolean;
+  error?: string;
+}
+
+export interface MessageAckResponse {
+  tempId: string;
+  message: PublicMessage;
+}
+
 export interface ServerToClientEvents {
   initializeSocket: (data: {
     rooms: Room[];
@@ -45,10 +65,13 @@ export interface ServerToClientEvents {
   }) => void;
   notification: (notification: Notification) => void;
   newMessage: (message: PublicMessage) => void;
+  messageError: (error: MessageError) => void;
+  messageAck: (ack: MessageAckResponse) => void;
 }
 
 export interface ClientToServerEvents {
   _dummy: undefined;
+  sendPublicMessage: (message: MessageAck) => void;
 }
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -77,4 +100,9 @@ export interface ChatMessage {
   content: string;
   readBy: ChatUser[];
   createdAt: string;
+}
+
+export interface MessageAck {
+  tempId: string;
+  content: string;
 } 

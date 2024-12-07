@@ -13,20 +13,16 @@ export function useNotifications() {
       return response.data;
     },
     onMutate: async (notificationId) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
 
-      // Snapshot the previous value
       const previousNotifications = queryClient.getQueryData<Notification[]>(['notifications']);
 
-      // Optimistically update notifications
       setNotifications((notifications) => 
         notifications.map(n => 
           n._id === notificationId ? { ...n, isRead: true } : n
         )
       );
 
-      // Remove from unread notifications
       setUnreadNotifications((notifications) => 
         notifications.filter(n => n._id !== notificationId)
       );
@@ -35,7 +31,6 @@ export function useNotifications() {
     },
     onError: (error, _, context) => {
       console.error('Mark as read error:', error);
-      // Rollback on error
       if (context?.previousNotifications) {
         setNotifications(context.previousNotifications);
         setUnreadNotifications(
@@ -44,7 +39,6 @@ export function useNotifications() {
       }
     },
     onSettled: () => {
-      // Refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
