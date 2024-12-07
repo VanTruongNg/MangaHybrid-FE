@@ -80,3 +80,32 @@ body {
     scrollbar-width: none;
   }
 }
+
+/* Custom Swiper Styles */
+.swiper {
+  overflow: visible !important;
+}
+
+.swiper-slide {
+  transition: opacity 300ms ease;
+}
+
+.swiper-slide-active {
+  opacity: 1 !important;
+}
+
+.swiper-pagination {
+  position: relative !important;
+  margin-top: 2rem;
+}
+
+.swiper-pagination-bullet {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: hsl(var(--primary) / 0.3);
+}
+
+.swiper-pagination-bullet-active {
+  width: 1.5rem !important;
+  background: hsl(var(--primary));
+}

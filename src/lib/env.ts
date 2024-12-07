@@ -1,6 +1,6 @@
 const requiredEnvs = [
   'NEXT_PUBLIC_API_URL',
-  'NEXT_PUBLIC_JWT_EXPIRES_IN'
+  'NEXT_PUBLIC_JWT_EXPIRES_IN',
 ] as const;
 
 export function validateEnv() {
@@ -17,5 +17,5 @@ export const env = {
   apiUrl: process.env.NEXT_PUBLIC_API_URL,
   jwtExpiresIn: process.env.NEXT_PUBLIC_JWT_EXPIRES_IN,
   socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL,
-  deviceId: process.env.NEXT_PUBLIC_DEVICE_ID
+  deviceId: process.env.NEXT_PUBLIC_DEVICE_ID,
 } as const; 

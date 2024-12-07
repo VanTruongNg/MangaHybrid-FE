@@ -1,135 +1,189 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
+import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useHome } from "@/hooks/use-home";
 import { cn } from "@/lib/utils";
-
-const banners = [
-  {
-    id: 1,
-    title: "Cô nàng mèo ngủ gật và Chàng trai hướng nội",
-    image: "/banners/banner-1.jpg",
-    description: "Truyện có mèo siu cute :))",
-  },
-  {
-    id: 2,
-    title: "Chainsaw Man",
-    image: "/banners/banner-2.jpg",
-    description: "Chapter mới đã cập nhật!",
-  },
-  {
-    id: 3,
-    title: "Spy x Family",
-    image: "/banners/banner-3.jpg",
-    description: "Season 2 đã có mặt trên MangaHybrid",
-  },
-];
+import { FastAverageColor } from "fast-average-color";
+import { useGradientStore } from "@/store/use-gradient-store";
 
 export function MangaCarousel() {
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { randomManga, isLoading } = useHome();
+  const [autoplay] = useState(
+    Autoplay({ delay: 5000, stopOnInteraction: false })
+  );
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "center",
+    },
+    [autoplay]
+  );
+
+  const scrollTo = useCallback(
+    (index: number) => {
+      if (emblaApi) {
+        autoplay.stop();
+        emblaApi.scrollTo(index);
+        setTimeout(() => {
+          autoplay.play();
+        }, 300);
+      }
+    },
+    [emblaApi, autoplay]
+  );
 
   useEffect(() => {
-    if (!api) return;
+    if (!emblaApi) return;
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
+    emblaApi.on("select", () => {
+      setSelectedIndex(emblaApi.selectedScrollSnap());
     });
-  }, [api]);
 
-  const handleSlideClick = (index: number) => {
-    if (!api || index === current) return;
-    api.scrollTo(index);
-  };
+    return () => {
+      emblaApi.destroy();
+    };
+  }, [emblaApi]);
+
+  const setGradientColor = useGradientStore((state) => state.setColor);
+  const fac = new FastAverageColor();
+
+  useEffect(() => {
+    if (!randomManga?.[selectedIndex]) return;
+
+    const getImageColor = async () => {
+      try {
+        const imageUrl =
+          randomManga[selectedIndex].bannerImg ??
+          randomManga[selectedIndex].coverImg;
+
+        if (!imageUrl) return;
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const img = document.createElement("img") as HTMLImageElement;
+        img.crossOrigin = "anonymous";
+
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          ctx.drawImage(img, 0, 0);
+
+          try {
+            const color = fac.getColor(canvas);
+            const [r, g, b] = color.value;
+
+            const lighterColor = `rgb(${Math.min(r + 40, 255)}, ${Math.min(
+              g + 40,
+              255
+            )}, ${Math.min(b + 40, 255)})`;
+            const darkerColor = `rgb(${Math.floor(r * 0.4)}, ${Math.floor(
+              g * 0.4
+            )}, ${Math.floor(b * 0.4)})`;
+
+            const gradient = `linear-gradient(
+              132deg,
+              ${lighterColor} 0%,
+              ${color.rgb} 50%,
+              ${darkerColor} 100%
+            )`;
+
+            setGradientColor(gradient);
+          } catch (e) {
+            console.error("Error getting color from canvas:", e);
+          }
+        };
+
+        img.onerror = ((event: string | Event) => {
+          console.error("Error loading image:", event);
+        }) as OnErrorEventHandler;
+
+        img.src = imageUrl;
+      } catch (error) {
+        console.error("Error getting image color:", error);
+      }
+    };
+
+    getImageColor();
+  }, [selectedIndex, randomManga, setGradientColor, fac]);
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="absolute left-1/2 top-[60vh] -translate-x-1/2 -translate-y-[80%] w-full">
-      <div className="pointer-events-none touch-none select-none overflow-hidden">
-        <Carousel
-          opts={{
-            align: "center",
-            loop: true,
-          }}
-          plugins={[
-            Autoplay({
-              delay: 5000,
-              stopOnInteraction: false,
-              stopOnMouseEnter: false,
-              playOnInit: true,
-            }),
-          ]}
-          setApi={setApi}
-          className="w-full"
-        >
-          <CarouselContent className="-ml-4">
-            {banners.map((banner, index) => (
-              <CarouselItem
-                key={banner.id}
-                className="pl-4 basis-[90%] md:basis-[70%] transition-opacity duration-300"
-                style={{ opacity: current === index ? 1 : 0.3 }}
-              >
-                <div className="relative aspect-[21/9] overflow-hidden rounded-xl">
-                  <div
-                    className="absolute inset-0 z-30 pointer-events-auto cursor-pointer"
-                    onClick={() => handleSlideClick(index)}
-                  />
-
-                  <Image
-                    src={banner.image}
-                    alt={banner.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1400px) 65vw"
-                    priority
-                    draggable={false}
-                  />
-                  {/* Dark overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                  {/* Content overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                    <div className="flex flex-col gap-2">
-                      <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white line-clamp-2">
-                        {banner.title}
-                      </h2>
-                      <p className="text-sm md:text-base lg:text-lg text-gray-200">
-                        {banner.description}
-                      </p>
-                      <button
-                        className="relative z-40 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 md:px-6 md:py-2 rounded-lg w-fit text-sm md:text-base pointer-events-auto"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        XEM THÔNG TIN
-                      </button>
-                    </div>
+    <div className="w-full">
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex px-4">
+          {randomManga.map((manga, index) => (
+            <div
+              key={manga._id}
+              className={cn(
+                "flex-[0_0_90%] md:flex-[0_0_70%] pl-4 transition-opacity duration-300",
+                "first:pl-0"
+              )}
+              style={{ opacity: selectedIndex === index ? 1 : 0.3 }}
+            >
+              <div className="relative aspect-[21/10] overflow-hidden rounded-xl">
+                <Image
+                  src={manga.bannerImg ?? manga.coverImg ?? "/placeholder.jpg"}
+                  alt={manga.title}
+                  fill
+                  className="object-cover object-top"
+                  sizes="(max-width: 1400px) 65vw"
+                  priority
+                  quality={100}
+                  draggable={false}
+                  crossOrigin="anonymous"
+                />
+                <div className="absolute inset-0 z-[20] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 z-[30]">
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white line-clamp-2">
+                      {manga.title}
+                    </h2>
+                    <p className="text-xs md:text-sm lg:text-base text-gray-200 line-clamp-2 max-w-[40%]">
+                      {manga.description || "Không có mô tả"}
+                    </p>
+                  </div>
+                  <div className="absolute bottom-6 md:bottom-8 right-6 md:right-8">
+                    <button
+                      className="relative z-[110] bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white px-4 py-1.5 md:px-6 md:py-2 rounded-lg text-sm md:text-base transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      XEM THÔNG TIN
+                    </button>
                   </div>
                 </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="pointer-events-auto relative z-50 mt-8">
+      {/* Dots */}
+      <div className="relative z-[100] mt-8">
         <div className="flex justify-center gap-2">
-          {banners.map((_, index) => (
+          {randomManga.map((_, index) => (
             <button
               key={index}
+              type="button"
               className={cn(
                 "w-2 h-2 rounded-full transition-all duration-300",
-                current === index
+                selectedIndex === index
                   ? "bg-primary w-6 cursor-default"
                   : "bg-primary/30 hover:bg-primary/50 active:bg-primary/70 cursor-pointer"
               )}
-              onClick={() => handleSlideClick(index)}
-              disabled={current === index}
+              onClick={() => scrollTo(index)}
+              disabled={selectedIndex === index}
             />
           ))}
         </div>
