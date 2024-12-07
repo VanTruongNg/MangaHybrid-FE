@@ -11,20 +11,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotificationList } from "@/components/notifications/notification-list";
 import { useNotificationStore } from "@/store/notification.store";
 
-export function NotificationButton() {
+interface NotificationButtonProps {
+  className?: string;
+}
+
+export function NotificationButton({ className }: NotificationButtonProps) {
   const { unreadNotifications } = useNotificationStore();
   const hasUnread = unreadNotifications.length > 0;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {hasUnread && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
-              {unreadNotifications.length}
-            </span>
-          )}
+        <Button variant="ghost" size="icon" className={className}>
+          <div className="relative">
+            <Bell className="h-5 w-5" />
+            {hasUnread && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
+                {unreadNotifications.length}
+              </span>
+            )}
+          </div>
         </Button>
       </DropdownMenuTrigger>
 

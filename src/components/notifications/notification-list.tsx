@@ -41,7 +41,7 @@ export function NotificationList({ filter }: NotificationListProps) {
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await markAsRead(notificationId);
-    } catch (error) {
+    } catch {
       toast.error("Không thể đánh dấu đã đọc thông báo");
     }
   };
@@ -66,7 +66,7 @@ export function NotificationList({ filter }: NotificationListProps) {
     <ScrollArea className="h-[300px]">
       <div className="space-y-3 p-2">
         {displayNotifications.map((notification) => {
-          const notificationId = notification._id || notification.id;
+          const notificationId = notification._id;
           return (
             <div
               key={notificationId}

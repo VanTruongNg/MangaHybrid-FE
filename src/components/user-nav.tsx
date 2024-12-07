@@ -13,7 +13,11 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export function UserNav() {
+interface UserNavProps {
+  className?: string;
+}
+
+export function UserNav({ className }: UserNavProps) {
   const { user, logout } = useAuth();
 
   if (!user) return null;
@@ -29,10 +33,10 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" size="icon" className={className}>
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
-            <AvatarFallback>{user.name[0]}</AvatarFallback>
+            <AvatarImage src={user?.avatarUrl} />
+            <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

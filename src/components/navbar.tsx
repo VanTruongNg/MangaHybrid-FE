@@ -1,21 +1,63 @@
+"use client";
+
 import Link from "next/link";
 import { UserNav } from "./user-nav";
 import { ThemeToggle } from "./theme/theme-toggle";
 import { NotificationButton } from "./notifications/notification-button";
-export function Navbar() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold">Webtoon</span>
-        </Link>
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <nav className="flex items-center space-x-2">
-            <NotificationButton />
-            <ThemeToggle />
-            <UserNav />
-          </nav>
+export function Navbar() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 0;
+      if (isScrolled !== scrolled) {
+        setIsScrolled(scrolled);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isScrolled]);
+
+  const commonStyles = cn(
+    isScrolled
+      ? "text-foreground hover:text-foreground/80"
+      : "text-primary-foreground hover:text-primary-foreground/90"
+  );
+
+  return (
+    <header
+      data-scrolled={isScrolled}
+      className={cn(
+        "sticky top-0 z-50 w-full",
+        isScrolled
+          ? "border-b bg-background/60 backdrop-blur-sm"
+          : "bg-transparent"
+      )}
+    >
+      <div className="container relative flex h-14 items-center justify-between">
+        {/* Left section - Empty */}
+        <div className="w-32" />
+
+        {/* Center section - Logo */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Link href="/" className="flex items-center space-x-2">
+            <span
+              className={cn("font-bold text-xl tracking-wider", commonStyles)}
+            >
+              MANGA HYBRID
+            </span>
+          </Link>
+        </div>
+
+        {/* Right section - Grouped controls */}
+        <div className="flex items-center space-x-2">
+          <NotificationButton className={commonStyles} />
+          <ThemeToggle className={commonStyles} />
+          <UserNav className={commonStyles} />
         </div>
       </div>
     </header>
