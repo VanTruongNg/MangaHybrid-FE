@@ -3,13 +3,26 @@
 import { useHome } from "@/hooks/use-home";
 import { MangaCarousel } from "@/components/manga/manga-carousel";
 import { useGradientStore } from "@/store/use-gradient-store";
+import { Suspense } from "react";
+import MainLoading from "./loading";
+import { RecentUpdatesSection } from "@/components/manga/recent-updates-section";
 
-export default function Home() {
-  const { isLoading, isError } = useHome();
+function MainContent() {
+  const { isLoading, isError, error, recentUpdated } = useHome();
   const gradientColor = useGradientStore((state) => state.color);
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError) return <div>Error loading data</div>;
+  if (isLoading) return <MainLoading />;
+  
+  if (isError) {
+    console.error('Error loading home data:', error);
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-destructive">
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen">
@@ -30,13 +43,18 @@ export default function Home() {
           <MangaCarousel />
         </div>
 
-        {/* Thêm nội dung để test scroll */}
-        <div className="pt-[80vh] space-y-8 p-8">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="h-40 rounded-lg border bg-card" />
-          ))}
+        <div className="pt-[25vh]">
+          <RecentUpdatesSection items={recentUpdated} />
         </div>
       </main>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<MainLoading />}>
+      <MainContent />
+    </Suspense>
   );
 }

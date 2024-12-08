@@ -25,16 +25,18 @@ export function Navbar() {
   const commonStyles = cn(
     "transition-colors duration-150",
     isScrolled
-      ? "text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
-      : "text-slate-200 hover:text-white dark:text-slate-300 dark:hover:text-white"
+      ? "text-foreground hover:text-primary hover:bg-transparent dark:text-slate-300 dark:hover:text-white"
+      : "text-slate-200 hover:text-white hover:bg-white/10 dark:text-slate-300 dark:hover:text-white"
   );
 
   return (
     <header
       data-scrolled={isScrolled}
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-150",
-        isScrolled ? "bg-background/80 backdrop-blur-sm" : "bg-transparent"
+        "sticky top-0 z-50 w-full",
+        isScrolled
+          ? "bg-background/80 backdrop-blur-sm border-b border-border"
+          : "bg-transparent"
       )}
     >
       <div className="container relative flex h-14 items-center justify-between">
@@ -56,7 +58,7 @@ export function Navbar() {
         </div>
 
         {/* Right section - Grouped controls */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-32 justify-end">
           <NotificationButton className={commonStyles} />
           <ThemeToggle className={commonStyles} />
           <UserNav className={commonStyles} />

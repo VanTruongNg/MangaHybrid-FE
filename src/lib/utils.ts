@@ -5,4 +5,4 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const isBrowser = () => typeof window !== 'undefined';
+export const isBrowser = () => typeof window !== "undefined";

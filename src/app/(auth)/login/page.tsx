@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/use-auth';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -19,6 +19,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { GoogleLoginButton } from '@/components/auth/google-login-button';
 import Link from 'next/link';
+import LoginLoading from './loading';
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -27,7 +28,7 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginContent() {
   const { login, isLoading, user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -136,5 +137,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginContent />
+    </Suspense>
   );
 } 

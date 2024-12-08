@@ -9,6 +9,7 @@ import type { User } from "@/types/user";
 import { SessionExpiredDialog } from "@/components/auth/session-expired-dialog";
 import { connectSocket } from "@/lib/socket";
 import { useSocket } from "@/hooks/use-socket";
+import { isBrowser } from "@/lib/utils";
 
 const SESSION_CHECK_CONFIG = {
   retry: false,
@@ -45,11 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
     },
-    enabled: !!localStorage.getItem("accessToken"),
+    enabled: isBrowser() ? !!localStorage.getItem("accessToken") : false,
     ...SESSION_CHECK_CONFIG,
   });
 
   useEffect(() => {
+    if (!isBrowser()) return;
+    
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
     
