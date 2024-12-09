@@ -1,12 +1,11 @@
 import axios from 'axios';
-import { env } from '@/lib/env';
+import { getDeviceId } from './device';
 import { useAuthStore } from '@/store/auth.store';
 
 const api = axios.create({
-  baseURL: env.apiUrl,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
-    'device-id': env.deviceId,
   },
 });
 
@@ -33,7 +32,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    config.headers['device-id'] = env.deviceId;
+
+    if ((!config.url?.includes('/auth/logout') || config.headers['device-id']) 
+        && localStorage.getItem('device_id')) {
+      const deviceId = getDeviceId();
+      config.headers['device-id'] = deviceId;
+    }
+
     return config;
   },
   (error) => {

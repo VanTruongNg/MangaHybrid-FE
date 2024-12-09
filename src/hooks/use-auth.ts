@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import type { User } from '@/types/user';
 import { useCallback } from 'react';
 import { connectSocket, disconnectSocket } from '@/lib/socket';
+import { getDeviceId, removeDeviceId } from '@/lib/device';
 
 interface LoginPayload {
   email: string;
@@ -25,7 +26,7 @@ const QUERY_KEYS = {
 } as const;
 
 export function useAuth() {
-  const { user, setUser, setAccessToken, setRefreshToken, logout: logoutStore } = useAuthStore();
+  const { user, setUser, setAccessToken, setRefreshToken } = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -35,13 +36,11 @@ export function useAuth() {
       setUser(data);
       return data;
     } catch (error) {
-      logoutStore();
       throw error;
     }
-  }, [setUser, logoutStore]);
+  }, [setUser]);
 
   const handleAuthSuccess = useCallback(async (tokens: LoginResponse) => {
-    console.log('Setting tokens:', tokens);
     setAccessToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
     
@@ -52,35 +51,73 @@ export function useAuth() {
       router.push('/');
     } catch (error) {
       console.error('Error fetching user:', error);
-      logoutStore();
       throw error;
     }
-  }, [setAccessToken, setRefreshToken, fetchUser, queryClient, router, logoutStore]);
+  }, [setAccessToken, setRefreshToken, fetchUser, queryClient, router]);
 
   const loginMutation = useMutation({
-    mutationFn: (payload: LoginPayload) => 
-      api.post<LoginResponse>('/auth/login', payload).then(res => res.data),
+    mutationFn: (payload: LoginPayload) => {
+      getDeviceId();
+      
+      return api.post<LoginResponse>('/auth/login', payload, {
+        headers: {
+          'device-id': getDeviceId()
+        }
+      }).then(res => res.data);
+    },
     onSuccess: handleAuthSuccess,
+    onError: () => {
+      removeDeviceId();
+    }
   });
 
   const googleLoginMutation = useMutation({
-    mutationFn: (payload: GoogleLoginPayload) => 
-      api.post<LoginResponse>('/auth/google', payload).then(res => res.data),
+    mutationFn: (payload: GoogleLoginPayload) => {
+      getDeviceId();
+      
+      return api.post<LoginResponse>('/auth/google', payload, {
+        headers: {
+          'device-id': getDeviceId()
+        }
+      }).then(res => res.data);
+    },
     onSuccess: handleAuthSuccess,
+    onError: () => {
+      removeDeviceId();
+    }
   });
 
-  const logout = useCallback(async () => {
-    disconnectSocket();
-    await logoutStore();
-    queryClient.clear();
-    router.replace('/login');
-  }, [logoutStore, queryClient, router]);
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const currentDeviceId = getDeviceId();
+      
+      const response = await api.post('/auth/logout', {}, {
+        headers: {
+          'device-id': currentDeviceId
+        }
+      });
+      
+      removeDeviceId();
+      
+      return response;
+    },
+    onSuccess: () => {
+      disconnectSocket();
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
+      queryClient.clear();
+    },
+    onError: (error) => {
+      console.error('Error logging out:', error);
+    }
+  });
 
   return {
     login: loginMutation.mutate,
     googleLogin: googleLoginMutation.mutate,
-    isLoading: loginMutation.isPending || googleLoginMutation.isPending,
+    logout: logoutMutation.mutate,
+    isLoading: loginMutation.isPending || googleLoginMutation.isPending || logoutMutation.isPending,
     user,
-    logout,
   };
 } 

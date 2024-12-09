@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/auth.store";
+import { useAuth } from '@/hooks/use-auth';
 import { useEffect } from "react";
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 
 export function SessionExpiredDialog({ isOpen, onClose }: Props) {
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { logout } = useAuth();
 
   useEffect(() => {
     if (isOpen) {

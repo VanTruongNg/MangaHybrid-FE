@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/navbar';
 import { FloatingChatButton } from '@/components/chat/floating-chat-button';
+import { Footer } from '@/components/footer';
 
 export default function MainLayout({
   children,
@@ -7,9 +8,12 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      {children}
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
       <FloatingChatButton />
     </div>
   );
