@@ -9,6 +9,7 @@ export interface MangaItem {
   view: number;
   dailyView?: number;
   weeklyView?: number;
+  monthlyView?: number;
   latestUpdate?: Date;
   chapterName?: string;
 }
@@ -19,4 +20,5 @@ export interface HomeResponse {
   recentUpdated: MangaItem[];
   randomManga: MangaItem[];
   topAllTime: MangaItem[];
+  monthlyTop: MangaItem[];
 } 

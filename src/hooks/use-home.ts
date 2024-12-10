@@ -1,12 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import type { HomeResponse } from "@/types/manga";
+import { useMangaStore } from "@/store/manga.store";
 
 export function useHome() {
-  const { data, isLoading, isError, error } = useQuery<HomeResponse>({
+  const setMangaData = useMangaStore((state) => state.setMangaData);
+  const {
+    dailyTop,
+    weeklyTop,
+    monthlyTop,
+    topAllTime,
+    recentUpdated,
+    randomManga,
+  } = useMangaStore();
+
+  useQuery<HomeResponse>({
     queryKey: ["home"],
     queryFn: async () => {
       const { data } = await api.get<HomeResponse>("/manga/home/web");
+      
+      // Cập nhật store ngay sau khi có dữ liệu
+      setMangaData({
+        dailyTop: data.dailyTop,
+        weeklyTop: data.weeklyTop,
+        monthlyTop: data.monthlyTop,
+        topAllTime: data.topAllTime,
+        recentUpdated: data.recentUpdated,
+        randomManga: data.randomManga,
+      });
+
       return data;
     },
     retry: 3,
@@ -14,13 +36,14 @@ export function useHome() {
   });
 
   return {
-    dailyTop: data?.dailyTop ?? [],
-    weeklyTop: data?.weeklyTop ?? [],
-    recentUpdated: data?.recentUpdated ?? [],
-    randomManga: data?.randomManga ?? [],
-    topAllTime: data?.topAllTime ?? [],
-    isLoading,
-    isError,
-    error,
+    dailyTop,
+    weeklyTop,
+    monthlyTop,
+    topAllTime,
+    recentUpdated,
+    randomManga,
+    isLoading: !dailyTop.length, // Sử dụng length của data để check loading
+    isError: false,
+    error: null,
   };
 } 

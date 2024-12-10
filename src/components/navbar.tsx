@@ -25,8 +25,11 @@ export function Navbar() {
   const commonStyles = cn(
     "transition-colors duration-150",
     isScrolled
-      ? "text-foreground hover:text-primary hover:bg-transparent dark:text-slate-300 dark:hover:text-white"
-      : "text-slate-200 hover:text-white hover:bg-white/10 dark:text-slate-300 dark:hover:text-white"
+      ? "text-foreground hover:text-primary dark:text-slate-300 dark:hover:text-white"
+      : cn(
+          "text-slate-700 hover:text-slate-900",
+          "dark:text-slate-300 dark:hover:text-white"
+        )
   );
 
   return (
@@ -49,7 +52,12 @@ export function Navbar() {
             <span
               className={cn(
                 "font-bold text-xl tracking-wider transition-colors duration-150",
-                commonStyles
+                isScrolled
+                  ? "text-foreground hover:text-primary dark:text-slate-300 dark:hover:text-white"
+                  : cn(
+                      "text-slate-700 hover:text-slate-900",
+                      "dark:text-slate-300 dark:hover:text-white"
+                    )
               )}
             >
               MANGA HYBRID

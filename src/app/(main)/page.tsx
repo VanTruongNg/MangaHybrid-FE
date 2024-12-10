@@ -6,29 +6,22 @@ import { useGradientStore } from "@/store/use-gradient-store";
 import { Suspense } from "react";
 import MainLoading from "./loading";
 import { RecentUpdatesSection } from "@/components/manga/recent-updates-section";
+import { FeaturedSection } from "@/components/manga/featured-section";
 
 function MainContent() {
-  const { isLoading, isError, error, recentUpdated } = useHome();
+  const { isLoading, recentUpdated, topAllTime, weeklyTop, monthlyTop } =
+    useHome();
+
   const gradientColor = useGradientStore((state) => state.color);
 
-  if (isLoading) return <MainLoading />;
-  
-  if (isError) {
-    console.error('Error loading home data:', error);
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-destructive">
-          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
-        </p>
-      </div>
-    );
+  if (isLoading) {
+    return <MainLoading />;
   }
 
   return (
     <div className="relative min-h-screen">
       {/* Hero Section with Custom Gradient */}
       <div className="relative w-full h-[65vh] -mt-[64px]">
-        {/* Main Gradient */}
         <div
           className="absolute inset-0 brightness-75 transition-[background] duration-1000"
           style={{
@@ -43,7 +36,12 @@ function MainContent() {
           <MangaCarousel />
         </div>
 
-        <div className="pt-[25vh]">
+        <div className="pt-[25vh] space-y-24">
+          <FeaturedSection
+            items={topAllTime}
+            weeklyTop={weeklyTop}
+            monthlyTop={monthlyTop}
+          />
           <RecentUpdatesSection items={recentUpdated} />
         </div>
       </main>

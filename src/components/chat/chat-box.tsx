@@ -75,7 +75,7 @@ const privateMessages = [
     user: "Admin",
     avatar: "https://github.com/shadcn.png",
     message: "Mình đã tìm thấy giao dịch của bạn",
-    timestamp: "50 phút trước",
+    timestamp: "50 phút trư���c",
   },
   {
     id: 9,
@@ -239,9 +239,10 @@ export function ChatBox({ onClose }: ChatBoxProps) {
 
   const handleSendPublicMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !user) return;
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage || !user) return;
 
-    const result = await sendMessage(message);
+    const result = await sendMessage(trimmedMessage);
     if (result) {
       setMessage("");
     }

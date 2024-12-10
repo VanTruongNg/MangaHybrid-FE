@@ -66,7 +66,7 @@ export function ChatMessage({
             "rounded-2xl text-sm break-words",
             "transition-spacing duration-200",
             "group-hover:mb-5",
-            isGrouped && (isOwner ? "mr-[2px]" : "ml-[2px]"),
+            isGrouped && message.trim() && (isOwner ? "mr-[2px]" : "ml-[2px]"),
             isOwner 
               ? cn(
                   "bg-primary text-primary-foreground",
@@ -81,7 +81,7 @@ export function ChatMessage({
                     : "rounded-tl-md"
                 )
           )}>
-            <p className="whitespace-pre-wrap">{message}</p>
+            <p className="whitespace-pre-wrap">{message.trim()}</p>
 
             <div className={cn(
               "absolute -bottom-5 text-[10px] text-muted-foreground/70",
