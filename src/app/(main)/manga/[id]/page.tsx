@@ -21,23 +21,105 @@ export default function MangaPage() {
   // Component Button Theo dõi
   const FollowButton = () => {
     const { user } = useAuth();
+    const mangaId = params.id as string;
+    const isFollowed = user?.followingManga?.some(manga => manga._id === mangaId);
 
     return (
       <button
         className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md border-2 shadow-sm w-full sm:w-auto ${
-          user
-            ? "bg-blue-500 text-white hover:bg-blue-600 border-blue-500"
-            : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-75"
+          !user 
+            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-75"
+            : isFollowed
+            ? "bg-gray-200 text-gray-700 hover:bg-gray-300 border-gray-200"
+            : "bg-blue-500 text-white hover:bg-blue-600 border-blue-500"
         }`}
         disabled={!user}
       >
-        <Heart className="w-3.5 h-3.5" fill={user ? "white" : "currentColor"} />
-        {user ? "THEO DÕI TRUYỆN" : "ĐĂNG NHẬP ĐỂ THEO DÕI"}
+        <Heart 
+          className="w-3.5 h-3.5" 
+          fill={isFollowed || !user ? "currentColor" : "white"} 
+        />
+        {!user 
+          ? "ĐĂNG NHẬP ĐỂ THEO DÕI"
+          : isFollowed 
+          ? "ĐÃ THEO DÕI" 
+          : "THEO DÕI TRUYỆN"
+        }
       </button>
     );
   };
 
-  if (isLoading) return <div>Đang tải...</div>;
+  if (isLoading) return (
+    <div className="relative mt-6 max-w-[1300px] mx-auto px-2">
+      {/* Banner Image Skeleton */}
+      <div className="relative w-full h-[400px] lg:h-[600px] rounded-t-lg overflow-hidden bg-gray-200 animate-pulse" />
+
+      {/* Container xám bên dưới banner */}
+      <div className="relative w-full h-[400px] lg:h-[200px] bg-gray-100 rounded-b-lg py-4 lg:py-0">
+        {/* Desktop Content Skeleton */}
+        <div className="hidden lg:block">
+          {/* Time Update Skeleton */}
+          <div className="absolute left-[calc(18.4rem+2rem)] top-4">
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+
+          {/* Genres Skeleton */}
+          <div className="absolute flex flex-wrap gap-2 left-[calc(18.4rem+2rem)] top-12">
+            {[1,2,3].map((i) => (
+              <div key={i} className="h-7 w-20 bg-gray-200 rounded-full animate-pulse" />
+            ))}
+          </div>
+
+          {/* Buttons Skeleton */}
+          <div className="absolute flex items-center gap-3 left-[calc(18.4rem+2rem)] top-[120px]">
+            <div className="h-9 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-9 w-36 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      {/* Cover Image Skeleton */}
+      <div className="absolute lg:left-24 left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[500px] lg:bottom-[320px] translate-y-1/2 z-20">
+        <div className="relative w-32 lg:w-56 h-44 lg:h-80 rounded-lg bg-gray-300 animate-pulse" />
+      </div>
+
+      {/* Title & Author Skeleton - Mobile */}
+      <div className="lg:hidden absolute left-1/2 -translate-x-1/2 bottom-[480px] translate-y-1/2 z-10">
+        <div className="text-center w-[250px] pt-[220px]">
+          <div className="h-6 w-48 mx-auto bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-4 w-32 mx-auto bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Title & Author Skeleton - Desktop */}
+      <div className="absolute lg:left-[calc(19rem+2rem)] left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[570px] lg:bottom-[380px] translate-y-1/2 z-10">
+        <div className="hidden lg:block">
+          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+          <div className="h-7 w-64 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Mobile Content Skeleton */}
+      <div className="lg:hidden">
+        {/* Genres Skeleton */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[295px] z-10 w-full">
+          <div className="flex flex-wrap justify-center gap-2 px-4">
+            {[1,2,3].map((i) => (
+              <div key={i} className="h-7 w-20 bg-gray-200 rounded-full animate-pulse" />
+            ))}
+          </div>
+        </div>
+
+        {/* Buttons Skeleton */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[180px] sm:bottom-[250px] z-10 w-full">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 px-4">
+            <div className="w-full sm:w-auto h-9 bg-gray-200 rounded animate-pulse" style={{maxWidth: "200px"}} />
+            <div className="w-full sm:w-auto h-9 bg-gray-200 rounded animate-pulse" style={{maxWidth: "200px"}} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <div>Có lỗi xảy ra</div>;
   if (!manga) return <div>Không tìm thấy truyện</div>;
 
