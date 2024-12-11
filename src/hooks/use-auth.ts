@@ -6,6 +6,8 @@ import type { User } from '@/types/user';
 import { useCallback } from 'react';
 import { connectSocket, disconnectSocket } from '@/lib/socket';
 import { getDeviceId, removeDeviceId } from '@/lib/device';
+import { useChatStore } from '@/store/chat.store';
+import { useNotificationStore } from '@/store/notification.store';
 
 interface LoginPayload {
   email: string;
@@ -29,6 +31,8 @@ export function useAuth() {
   const { user, setUser, setAccessToken, setRefreshToken } = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const clearChatMessages = useChatStore((state) => state.clearMessages);
+  const clearNotifications = useNotificationStore((state) => state.clearAll);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -107,6 +111,8 @@ export function useAuth() {
       setAccessToken(null);
       setRefreshToken(null);
       queryClient.clear();
+      clearChatMessages();
+      clearNotifications();
     },
     onError: (error) => {
       console.error('Error logging out:', error);

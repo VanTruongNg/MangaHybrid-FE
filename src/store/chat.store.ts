@@ -10,6 +10,7 @@ interface TempMessage extends Omit<PublicMessage, '_id'> {
 interface ChatStore {
   publicMessages: (PublicMessage | TempMessage)[];
   tempMessageMap: Map<string, number>;
+  clearMessages: () => void;
   setPublicMessages: (messages: PublicMessage[] | ((prev: PublicMessage[]) => PublicMessage[])) => void;
   addTempMessage: (message: TempMessage) => void;
   updateMessageFromAck: (tempId: string, message: PublicMessage) => void;
@@ -17,9 +18,15 @@ interface ChatStore {
   resendMessage: (tempId: string) => void;
 }
 
-export const useChatStore = create<ChatStore>((set) => ({
+const initialState = {
   publicMessages: [],
-  tempMessageMap: new Map(),
+  tempMessageMap: new Map<string, number>()
+};
+
+export const useChatStore = create<ChatStore>((set) => ({
+  ...initialState,
+
+  clearMessages: () => set(initialState),
 
   setPublicMessages: (messages) => set((state) => ({ 
     publicMessages: typeof messages === 'function' 
