@@ -7,18 +7,48 @@ import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Clock, Heart, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import MangaLoadingSkeleton from './loading-skeleton';
 
 export default function MangaPage() {
+  // Hooks & States
   const params = useParams();
   const router = useRouter();
   const { manga, isLoading, error } = useMangaDetail(params.id as string);
 
-  // Hàm xử lý click vào genre
+  // Handlers
   const handleGenreClick = (genreId: string) => {
     router.push(`/browse?genre=${genreId}`);
   };
 
-  // Component Button Theo dõi
+  // Utils
+  const getLatestUpdate = () => {
+    let latestUpdate = null;
+    try {
+      if (manga?.chapters?.length) {
+        const dates = manga.chapters.map((chapter) => {
+          try {
+            return new Date(chapter.createdAt).getTime();
+          } catch {
+            return 0;
+          }
+        });
+  
+        const maxDate = Math.max(...dates);
+        if (maxDate > 0) {
+          latestUpdate = formatDistanceToNow(new Date(maxDate), {
+            addSuffix: true,
+            locale: vi,
+          });
+        }
+      }
+      return latestUpdate;
+    } catch (err) {
+      console.error("Error formatting date:", err);
+      return null;
+    }
+  };
+
+  // Components
   const FollowButton = () => {
     const { user } = useAuth();
     const mangaId = params.id as string;
@@ -50,126 +80,17 @@ export default function MangaPage() {
     );
   };
 
-  if (isLoading)
-    return (
-      <div className="relative mt-6 max-w-[1300px] mx-auto px-2">
-        {/* Banner Image Skeleton */}
-        <div className="relative w-full h-[400px] lg:h-[600px] rounded-t-lg overflow-hidden bg-gray-200 animate-pulse" />
-
-        {/* Container xám bên dưới banner */}
-        <div className="relative w-full h-[400px] lg:h-[200px] bg-gray-200 border-2 border-gray-300 py-4 lg:py-0">
-          {/* Desktop Content Skeleton */}
-          <div className="hidden lg:block">
-            {/* Time Update Skeleton */}
-            <div className="absolute left-[calc(18.4rem+2rem)] top-4">
-              <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
-            </div>
-
-            {/* Genres Skeleton */}
-            <div className="absolute flex flex-wrap gap-2 left-[calc(18.4rem+2rem)] top-12">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-7 w-20 bg-gray-200 rounded-full animate-pulse"
-                />
-              ))}
-            </div>
-
-            {/* Buttons Skeleton */}
-            <div className="absolute flex items-center gap-3 left-[calc(18.4rem+2rem)] top-[120px]">
-              <div className="h-9 w-32 bg-gray-200 rounded animate-pulse" />
-              <div className="h-9 w-36 bg-gray-200 rounded animate-pulse" />
-            </div>
-          </div>
-        </div>
-        {/* Thêm container màu trắng */}
-        <div className="relative w-full h-[800px] bg-white border-2 border-gray-300 py-4 lg:py-0 rounded-b-lg">
-          <div className="w-[70%] ml-8 bg-gray-200 h-[30%] rounded-lg mt-4 opacity-70">
-            {/* Nội dung cho container con */}
-          </div>
-        </div>
-
-        {/* Cover Image Skeleton */}
-        <div className="absolute lg:left-24 left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[500px] lg:bottom-[320px] translate-y-1/2 z-20">
-          <div className="relative w-32 lg:w-56 h-44 lg:h-80 rounded-lg bg-gray-300 animate-pulse" />
-        </div>
-
-        {/* Title & Author Skeleton - Mobile */}
-        <div className="lg:hidden absolute left-1/2 -translate-x-1/2 bottom-[480px] translate-y-1/2 z-10">
-          <div className="text-center w-[250px] pt-[220px]">
-            <div className="h-6 w-48 mx-auto bg-gray-200 rounded animate-pulse mb-2" />
-            <div className="h-4 w-32 mx-auto bg-gray-200 rounded animate-pulse" />
-          </div>
-        </div>
-
-        {/* Title & Author Skeleton - Desktop */}
-        <div className="absolute lg:left-[calc(19rem+2rem)] left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[570px] lg:bottom-[380px] translate-y-1/2 z-10">
-          <div className="hidden lg:block">
-            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-            <div className="h-7 w-64 bg-gray-200 rounded animate-pulse" />
-          </div>
-        </div>
-
-        {/* Mobile Content Skeleton */}
-        <div className="lg:hidden">
-          {/* Genres Skeleton */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-[295px] z-10 w-full">
-            <div className="flex flex-wrap justify-center gap-2 px-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-7 w-20 bg-gray-200 rounded-full animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Buttons Skeleton */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-[180px] sm:bottom-[250px] z-10 w-full">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 px-4">
-              <div
-                className="w-full sm:w-auto h-9 bg-gray-200 rounded animate-pulse"
-                style={{ maxWidth: "200px" }}
-              />
-              <div
-                className="w-full sm:w-auto h-9 bg-gray-200 rounded animate-pulse"
-                style={{ maxWidth: "200px" }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Loading & Error states
+  if (isLoading) return <MangaLoadingSkeleton />;
   if (error) return <div>Có lỗi xảy ra</div>;
   if (!manga) return <div>Không tìm thấy truyện</div>;
 
-  // Lấy thời gian gần nhất từ tất cả các chapter
-  let latestUpdate = null;
-  try {
-    if (manga.chapters?.length) {
-      const dates = manga.chapters.map((chapter) => {
-        try {
-          return new Date(chapter.createdAt).getTime();
-        } catch {
-          return 0;
-        }
-      });
+  const latestUpdate = getLatestUpdate();
 
-      const maxDate = Math.max(...dates);
-      if (maxDate > 0) {
-        latestUpdate = formatDistanceToNow(new Date(maxDate), {
-          addSuffix: true,
-          locale: vi,
-        });
-      }
-    }
-  } catch (err) {
-    console.error("Error formatting date:", err);
-  }
-
+  // Main render
   return (
     <div className="relative mt-6 max-w-[1300px] mx-auto px-2">
-      {/* Banner Image */}
+      {/* Banner Section */}
       <div className="relative w-full h-[400px] lg:h-[600px] rounded-t-lg overflow-hidden">
         {manga.bannerImg ? (
           <Image
@@ -185,9 +106,9 @@ export default function MangaPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent from-5% via-black/50 via-40% to-black" />
       </div>
 
-      {/* Container xám bên dưới banner */}
+      {/* Info Section */}
       <div className="relative w-full h-[400px] lg:h-[200px] bg-gray-200 border-2 border-gray-300 py-4 lg:py-0">
-        {/* Thời gian cập nhật - Desktop */}
+        {/* Desktop Content */}
         {latestUpdate && (
           <div className="absolute hidden lg:flex text-left left-[calc(18.4rem+2rem)] top-4 text-sm text-gray-500 z-10 items-center gap-1">
             <Clock className="w-5 h-5" />
@@ -219,7 +140,8 @@ export default function MangaPage() {
           </button>
         </div>
       </div>
-      {/* Thêm container màu trắng */}
+
+      {/* Content Section */}
       <div className="relative w-full h-[900px] bg-white border-2 border-gray-300 py-4 lg:py-0 rounded-b-lg">
         {/* Container xám */}
         <div className="w-[97%] mx-auto lg:w-[75%] lg:ml-4 lg:mx-0 bg-gray-200 h-[30%] rounded-lg mt-6 opacity-70">
@@ -244,7 +166,7 @@ export default function MangaPage() {
         </div>
       </div>
 
-      {/* Cover Image - Mobile */}
+      {/* Cover Image */}
       <div className="absolute lg:left-24 left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[1400px] lg:bottom-[1220px] translate-y-1/2 z-20">
         <div className="relative w-32 lg:w-56 h-44 lg:h-80 rounded-lg overflow-hidden shadow-lg border-2 border-white">
           {manga.coverImg ? (
@@ -261,39 +183,7 @@ export default function MangaPage() {
         </div>
       </div>
 
-      {/* Title & Author - Mobile */}
-      <div className="lg:hidden absolute left-1/2 -translate-x-1/2 bottom-[1380px] translate-y-1/2 z-10">
-        <div className="text-center w-[250px] pt-[220px]">
-          <div className="max-h-[150px] overflow-y-auto">
-            <h1 className="text-lg font-extrabold text-black/90 break-words">
-              {manga.title}
-            </h1>
-            <div className="text-sm text-gray-800 mt-1 font-head">
-              {manga.author}
-            </div>
-            {latestUpdate && (
-              <div className="flex items-center justify-center gap-1 text-sm text-gray-500 mt-2">
-                <Clock className="w-4 h-4" />
-                {latestUpdate}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Thông tin manga */}
-      <div className="absolute lg:left-[calc(19rem+2rem)] left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[570px] lg:bottom-[1270px] translate-y-1/2 z-10">
-        <div className="hidden lg:flex text-center lg:text-left w-full lg:w-auto flex-col">
-          <div className="text-xs lg:text-base text-black/75 lg:text-gray-200 lg:opacity-75 -mb-1 lg:mb-1 translate-y-3 lg:translate-y-0 order-2 lg:order-1">
-            {manga.author}
-          </div>
-          <h1 className="text-base lg:text-2xl font-extrabold text-black lg:text-white translate-y-3 lg:translate-y-0 order-1 lg:order-2">
-            {manga.title}
-          </h1>
-        </div>
-      </div>
-
-      {/* Mobile & Tablet Content */}
+      {/* Mobile Content */}
       <div className="lg:hidden space-y-4 mt-4">
         {/* Genres - Mobile */}
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[1190px] z-10 w-full">
