@@ -43,6 +43,7 @@ export interface MangaDetail extends MangaItem {
     _id: string;
     name: string;
     email: string;
+    avatarUrl: string;
   };
   status: string;
   approvalStatus: string;

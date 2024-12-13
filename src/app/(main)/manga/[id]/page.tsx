@@ -5,15 +5,47 @@ import { useMangaDetail } from "@/hooks/use-manga-detail";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Clock, Heart, BookOpen } from "lucide-react";
+import { Clock, Heart, BookOpen, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import MangaLoadingSkeleton from './loading-skeleton';
+import MangaLoadingSkeleton from "./loading-skeleton";
+import { useState, useRef, useEffect } from "react";
+import { useReadingHistoryStore } from "@/store/reading-history.store";
 
 export default function MangaPage() {
   // Hooks & States
   const params = useParams();
   const router = useRouter();
   const { manga, isLoading, error } = useMangaDetail(params.id as string);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const { isRead } = useReadingHistoryStore();
+  const { user } = useAuth();
+  const { setReadingHistory } = useReadingHistoryStore();
+
+  useEffect(() => {
+    if (user?.readingHistory) {
+      setReadingHistory(user.readingHistory);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (contentRef.current) {
+        const hasContentOverflow =
+          contentRef.current.scrollHeight > contentRef.current.offsetHeight;
+        setHasOverflow(hasContentOverflow);
+      }
+    };
+
+    // Kiểm tra ngay khi component mount và khi manga thay đổi
+    checkOverflow();
+
+    // Thêm một setTimeout để đảm bảo content đã render xong
+    const timer = setTimeout(checkOverflow, 100);
+
+    return () => clearTimeout(timer);
+  }, [manga]);
 
   // Handlers
   const handleGenreClick = (genreId: string) => {
@@ -32,7 +64,7 @@ export default function MangaPage() {
             return 0;
           }
         });
-  
+
         const maxDate = Math.max(...dates);
         if (maxDate > 0) {
           latestUpdate = formatDistanceToNow(new Date(maxDate), {
@@ -107,7 +139,7 @@ export default function MangaPage() {
       </div>
 
       {/* Info Section */}
-      <div className="relative w-full h-[400px] lg:h-[200px] bg-gray-200 border-2 border-gray-300 py-4 lg:py-0">
+      <div className="relative w-full h-[350px] lg:h-[200px] bg-gray-200 border-2 border-gray-300 py-4 lg:py-0">
         {/* Desktop Content */}
         {latestUpdate && (
           <div className="absolute hidden lg:flex text-left left-[calc(18.4rem+2rem)] top-4 text-sm text-gray-500 z-10 items-center gap-1">
@@ -142,32 +174,138 @@ export default function MangaPage() {
       </div>
 
       {/* Content Section */}
-      <div className="relative w-full h-[900px] bg-white border-2 border-gray-300 py-4 lg:py-0 rounded-b-lg">
-        {/* Container xám */}
-        <div className="w-[97%] mx-auto lg:w-[75%] lg:ml-4 lg:mx-0 bg-gray-200 h-[30%] rounded-lg mt-6 opacity-70">
-          {/* Nội dung cho container xám */}
+      <div className="relative w-full bg-white border-2 border-gray-300 py-4 lg:py-0 rounded-b-lg h-fit min-h-[800px]">
+        {/* Combined containers wrapper */}
+        <div
+          ref={contentRef}
+          className={`w-[97%] mx-auto lg:w-[75%] lg:ml-4 lg:mx-0 relative ${
+            isExpanded ? "h-auto" : "h-[180px]"
+          } overflow-hidden transition-[height] duration-300 ease-in-out`}
+        >
+          {/* Description container */}
+          <div className="bg-gray-200 mt-6 opacity-70 transition-transform duration-300 ease-in-out">
+            {/* Author info */}
+            <div className="flex items-center gap-3 p-4 border-b border-gray-300">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                {manga.uploader?.avatarUrl ? (
+                  <Image
+                    src={manga.uploader.avatarUrl}
+                    alt={manga.uploader.name}
+                    fill
+                    className="object-cover"
+                    unoptimized={manga.uploader.avatarUrl.includes('googleusercontent.com')}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-white text-sm font-extrabold">
+                      {manga.uploader?.name?.[0]?.toUpperCase() || "U"}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <span className="font-medium text-black font-extrabold text-sm">
+                {manga.uploader?.name || "Unknown Uploader"}
+              </span>
+            </div>
+
+            {/* Description text */}
+            <div className="p-4 text-gray-700">{manga.description}</div>
+          </div>
+
+          {/* Dark gray container */}
+          <div className="bg-gray-300 opacity-70 transition-transform duration-300 ease-in-out">
+            <div className="p-4">
+              <h3 className="font-bold text-black mb-2">THÔNG TIN THÊM</h3>
+              <div className="space-y-1">
+                <div className="text-sm text-gray-700">
+                  <span className="font-bold text-black">
+                    {manga.chapters?.length || 0}
+                  </span>{" "}
+                  chương đã đăng
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-bold text-black">
+                    {manga.view?.toLocaleString() || 0}
+                  </span>{" "}
+                  lượt xem
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gradient overlay và button */}
+          {hasOverflow && (
+            <div className="absolute bottom-0 left-0 right-0">
+              {!isExpanded && (
+                <div className="h-12 bg-gradient-to-t from-gray-200 to-transparent transition-opacity duration-300" />
+              )}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className={`absolute ${
+                  isExpanded ? "relative" : "bottom-0"
+                } left-1/2 -translate-x-1/2 text-xs text-gray-500 hover:text-gray-600 font-bold transition-all duration-300`}
+              >
+                {isExpanded ? "Thu gọn" : "Xem thêm"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scroll area container */}
-        <div className="w-[97%] mx-auto lg:w-[75%] lg:ml-4 lg:mx-0 mt-8 max-h-[60%] h-fit overflow-y-auto rounded-lg bg-gray-200">
-          {/* Nội dung có thể scroll */}
-          <div className="space-y-4 p-4">
-            {/* Mock data */}
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-bold">Chapter {item}</h3>
-                <p className="text-gray-600">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam
-                  voluptates, quod, voluptate, voluptas quae quidem quibusdam
-                </p>
-              </div>
-            ))}
+        <div className="w-[97%] mx-auto lg:w-[75%] lg:ml-4 lg:mx-0 mt-8 h-[550px] overflow-y-auto bg-white mb-8">
+          {/* Chapter list */}
+          <div className="space-y-2">
+            {manga.chapters
+              ?.sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime()
+              )
+              ?.map((chapter, index) => (
+                <div
+                  key={chapter._id}
+                  className={`${
+                    index % 2 === 0 ? "bg-gray-200/50" : "bg-white"
+                  } hover:bg-gray-200 py-3 px-4 shadow-sm cursor-pointer transition-colors w-full border-l-8 ${
+                    isRead(chapter._id) 
+                      ? "border-l-blue-500/80" 
+                      : "border-l-gray-300/80"
+                  } -ml-[1px]`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="text-base font-bold text-gray-800">
+                        {chapter.chapterName}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-600">
+                          {chapter.chapterTitle || <span className="italic text-gray-500/80">Không có tiêu đề</span>}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {formatDistanceToNow(new Date(chapter.createdAt), {
+                            addSuffix: true,
+                            locale: vi,
+                          })}
+                          {" - "}
+                          {chapter.views?.toLocaleString() || 0} lượt xem
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      className="p-2 text-gray-500 hover:text-gray-700 bg-gray-300 hover:bg-gray-400 rounded-full transition-all"
+                      title="Tải xuống"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
       {/* Cover Image */}
-      <div className="absolute lg:left-24 left-1/2 -translate-x-1/2 lg:translate-x-0 bottom-[1400px] lg:bottom-[1220px] translate-y-1/2 z-20">
+      <div className="absolute lg:left-24 left-1/2 -translate-x-1/2 lg:translate-x-0 top-[270px] lg:top-[290px] translate-y-1/2 z-20">
         <div className="relative w-32 lg:w-56 h-44 lg:h-80 rounded-lg overflow-hidden shadow-lg border-2 border-white">
           {manga.coverImg ? (
             <Image
@@ -183,10 +321,30 @@ export default function MangaPage() {
         </div>
       </div>
 
+      {/* Title & Author - Desktop */}
+      <div className="absolute hidden lg:block lg:left-[calc(19rem+2rem)] left-1/2 -translate-x-1/2 lg:translate-x-0 top-[600px] lg:top-[500px] translate-y-1/2 z-10">
+        <div className="text-gray-200 text-sm mb-1 opacity-75">
+          {manga.author}
+        </div>
+        <h1 className="text-2xl font-extrabold opacity-90">{manga.title}</h1>
+      </div>
+
+      {/* Title & Author - Mobile */}
+      <div className="lg:hidden absolute left-1/2 -translate-x-1/2 top-[190px] translate-y-1/2 z-10">
+        <div className="text-center w-[350px] sm:w-[450px] pt-[220px]">
+          <h1 className="text-xl font-bold text-gray-800 mb-1 px-4">
+            {manga.title}
+          </h1>
+          <div className="text-sm text-gray-500 px-4 truncate">
+            {manga.author}
+          </div>
+        </div>
+      </div>
+
       {/* Mobile Content */}
       <div className="lg:hidden space-y-4 mt-4">
         {/* Genres - Mobile */}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[1190px] z-10 w-full">
+        <div className="absolute left-1/2 -translate-x-1/2 top-[600px] z-10 w-full">
           <div className="flex flex-wrap justify-center gap-2 px-4">
             {manga.genre?.map((genre) => (
               <div
@@ -203,7 +361,7 @@ export default function MangaPage() {
         </div>
 
         {/* Action Buttons - Mobile */}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[1100px] sm:bottom-[1120px] z-10 w-full">
+        <div className="absolute left-1/2 -translate-x-1/2 top-[650px] sm:top-[650px] z-10 w-full">
           <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center gap-2 px-4">
             <div className="w-full sm:w-auto">
               <FollowButton />
