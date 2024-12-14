@@ -707,9 +707,10 @@ export default function MangaPage() {
                     manga.comments.reduce((total, comment) => total + 1 + comment.replies.length, 0)
                   })`}
                 </h3>
+
+                {/* Comment Input - Only show for logged in users */}
                 {user ? (
-                  <div className="space-y-6">
-                    {/* Comment input */}
+                  <div className="mb-6">
                     <div className="flex items-start gap-3">
                       <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                         {user.avatarUrl ? (
@@ -718,9 +719,7 @@ export default function MangaPage() {
                             alt={user.name}
                             fill
                             className="object-cover"
-                            unoptimized={user.avatarUrl.includes(
-                              "googleusercontent.com"
-                            )}
+                            unoptimized={user.avatarUrl.includes("googleusercontent.com")}
                           />
                         ) : (
                           <div className="w-full h-full bg-blue-500 flex items-center justify-center">
@@ -766,37 +765,37 @@ export default function MangaPage() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Comments list */}
-                    {manga.comments?.length > 0 ? (
-                      <div className="space-y-4">
-                        {[...manga.comments]
-                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                          .map((comment) => (
-                            <CommentItem 
-                              key={comment._id} 
-                              comment={comment} 
-                              manga={manga}
-                            />
-                          ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
-                        Chưa có bình luận nào
-                      </div>
-                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-4">
+                  <div className="mb-6 text-center py-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-2">
                       Đăng nhập để bình luận về truyện này
                     </p>
                     <button
                       onClick={() => router.push("/login")}
-                      className="px-6 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors"
+                      className="px-4 py-1.5 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors"
                     >
                       Đăng nhập
                     </button>
+                  </div>
+                )}
+
+                {/* Comments List - Always visible */}
+                {manga.comments?.length > 0 ? (
+                  <div className="space-y-4">
+                    {[...manga.comments]
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((comment) => (
+                        <CommentItem 
+                          key={comment._id} 
+                          comment={comment} 
+                          manga={manga}
+                        />
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
+                    Chưa có bình luận nào
                   </div>
                 )}
               </div>
