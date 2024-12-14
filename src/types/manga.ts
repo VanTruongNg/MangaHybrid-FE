@@ -54,4 +54,36 @@ export interface MangaDetail extends MangaItem {
   comments: Comment[];
   ratingCount: number;
   totalRating: number;
+}
+
+interface CommentUser {
+  _id: string;
+  name: string;
+  avatarUrl: string;
+}
+
+export interface CommentMention {
+  userId: {
+    _id: string;
+    name: string;
+  };
+  username: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+export interface Comment {
+  _id: string;
+  user: CommentUser;
+  content: string;
+  createdAt: string;
+  manga?: string;
+  chapter?: string;
+  parentComment?: string;
+  replyToUser?: {
+    _id: string;
+    name: string;
+  };
+  replies: string[];
+  mentions: CommentMention[];
 } 
