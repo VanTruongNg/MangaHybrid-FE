@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { UserCircle2 } from "lucide-react";
+import { useReaderRoute } from "@/hooks/use-reader-route";
 
 interface UserNavProps {
   className?: string;
@@ -20,6 +21,7 @@ interface UserNavProps {
 
 export function UserNav({ className }: UserNavProps) {
   const { user, isLoading, logout } = useAuth();
+  const { shouldHideUI } = useReaderRoute();
 
   const handleLogout = async () => {
     try {
@@ -28,6 +30,8 @@ export function UserNav({ className }: UserNavProps) {
       // Ignore error
     }
   };
+
+  if (shouldHideUI) return null;
 
   return (
     <div className="relative">

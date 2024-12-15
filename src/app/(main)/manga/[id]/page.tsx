@@ -415,21 +415,17 @@ export default function MangaPage() {
       }
     };
 
-    // Kiểm tra ngay khi component mount và khi manga thay đổi
     checkOverflow();
 
-    // Thêm một setTimeout để đảm bảo content đã render xong
     const timer = setTimeout(checkOverflow, 100);
 
     return () => clearTimeout(timer);
   }, [manga]);
 
-  // Handlers
   const handleGenreClick = (genreId: string) => {
     router.push(`/browse?genre=${genreId}`);
   };
 
-  // Utils
   const getLatestUpdate = () => {
     let latestUpdate = null;
     try {
@@ -457,7 +453,6 @@ export default function MangaPage() {
     }
   };
 
-  // Components
   const FollowButton = () => {
     const { user } = useAuth();
     const mangaId = params.id as string;
@@ -489,14 +484,12 @@ export default function MangaPage() {
     );
   };
 
-  // Loading & Error states
   if (isLoading) return <MangaLoadingSkeleton />;
   if (error) return <div>Có lỗi xảy ra</div>;
   if (!manga) return <div>Không tìm thấy truyện</div>;
 
   const latestUpdate = getLatestUpdate();
 
-  // Main render
   return (
     <div className="relative mt-6 max-w-[1300px] mx-auto px-2">
       {/* Banner Section */}
@@ -652,6 +645,7 @@ export default function MangaPage() {
                   ?.map((chapter, index) => (
                     <div
                       key={chapter._id}
+                      onClick={() => router.push(`/manga/${params.id}/chapter/${chapter._id}`)}
                       className={`${
                         index % 2 === 0 ? "bg-gray-200/50" : "bg-white"
                       } hover:bg-gray-200 py-3 px-4 shadow-sm cursor-pointer transition-colors w-full border-l-8 ${

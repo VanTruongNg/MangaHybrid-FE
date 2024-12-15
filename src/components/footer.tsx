@@ -1,9 +1,16 @@
+"use client";
+
+import { useReaderRoute } from "@/hooks/use-reader-route";
 import Link from "next/link";
 import { Github, Mail, Facebook } from "lucide-react";
 
 const GMAIL_COMPOSE_URL = "https://mail.google.com/mail/?view=cm&fs=1&to=truongnguyen.dev93@gmail.com";
 
 export function Footer() {
+  const { shouldHideUI } = useReaderRoute();
+
+  if (shouldHideUI) return null;
+
   return (
     <footer className="border-t">
       <div className="container flex flex-col items-center justify-center gap-4 py-6">
