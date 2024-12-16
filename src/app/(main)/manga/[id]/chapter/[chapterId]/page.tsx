@@ -2,32 +2,18 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useChapterDetail } from "@/hooks/use-chapter-detail";
-import { useState, useRef, useEffect } from "react";
 import { useReadingModeStore } from "@/store/reading-mode.store";
 import { ChapterInfo } from "@/components/chapter/chapter-info";
+import { SpecialReader } from "@/components/chapter/special-reader";
+import { useUpdateChapterView } from "@/hooks/use-update-chapter-view";
 
 export default function ChapterPage() {
   const params = useParams();
   const router = useRouter();
   const { chapter, isLoading } = useChapterDetail(params.chapterId as string);
-  const { mode: readingMode } = useReadingModeStore();
-  const [currentPage, setCurrentPage] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { mode: readingMode, setMode } = useReadingModeStore();
 
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (readingMode === "SPECIAL" && chapter) {
-        if (e.key === "ArrowLeft") {
-          handlePageChange("prev");
-        } else if (e.key === "ArrowRight") {
-          handlePageChange("next");
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [readingMode, currentPage, chapter]);
+  useUpdateChapterView(params.chapterId as string);
 
   if (isLoading) {
     return (
@@ -52,14 +38,6 @@ export default function ChapterPage() {
     router.push(`/manga/${params.id}/chapter/${chapterId}`);
   };
 
-  const handlePageChange = (direction: "prev" | "next") => {
-    if (direction === "prev") {
-      setCurrentPage((prev) => Math.max(0, prev - 1));
-    } else if (direction === "next") {
-      setCurrentPage((prev) => Math.min(chapter.pagesUrl.length - 1, prev + 1));
-    }
-  };
-
   return (
     <>
       {readingMode === "CLASSIC" && (
@@ -70,7 +48,7 @@ export default function ChapterPage() {
             onNavigate={handleNavigation}
           />
 
-          <div ref={containerRef} className="max-w-[2400px] mx-auto px-4 pt-64">
+          <div className="max-w-[2400px] mx-auto px-4 pt-64">
             <div className="space-y-4 pb-32">
               {chapter.pagesUrl.map((url, index) => (
                 <div
@@ -88,8 +66,8 @@ export default function ChapterPage() {
 
               <div className="max-w-[600px] mx-auto space-y-3 pt-16">
                 <button
-                  onClick={() => 
-                    chapter.navigation.nextChapter && 
+                  onClick={() =>
+                    chapter.navigation.nextChapter &&
                     handleNavigation(chapter.navigation.nextChapter._id)
                   }
                   disabled={!chapter.navigation.nextChapter}
@@ -97,17 +75,20 @@ export default function ChapterPage() {
                 >
                   {chapter.navigation.nextChapter ? (
                     <div className="text-xs font-bold">
-                      XEM TIẾP {chapter.navigation.nextChapter.chapterName.toUpperCase()}
+                      XEM TIẾP{" "}
+                      {chapter.navigation.nextChapter.chapterName.toUpperCase()}
                     </div>
                   ) : (
-                    <div className="text-base font-bold">ĐÂY LÀ CHƯƠNG MỚI NHẤT</div>
+                    <div className="text-base font-bold">
+                      ĐY LÀ CHƯƠNG MỚI NHẤT
+                    </div>
                   )}
                 </button>
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => 
-                      chapter.navigation.prevChapter && 
+                    onClick={() =>
+                      chapter.navigation.prevChapter &&
                       handleNavigation(chapter.navigation.prevChapter._id)
                     }
                     disabled={!chapter.navigation.prevChapter}
@@ -116,10 +97,11 @@ export default function ChapterPage() {
                     <div className="text-xs font-bold">
                       {chapter.navigation.prevChapter ? (
                         <>
-                          CHƯƠNG TRƯỚC - {chapter.navigation.prevChapter.chapterName.toUpperCase()}
+                          CHƯƠNG TRƯỚC -{" "}
+                          {chapter.navigation.prevChapter.chapterName.toUpperCase()}
                         </>
                       ) : (
-                        'CHƯƠNG CŨ NHẤT'
+                        "CHƯƠNG CŨ NHẤT"
                       )}
                     </div>
                   </button>
@@ -128,7 +110,7 @@ export default function ChapterPage() {
                     onClick={() => {
                       window.scrollTo({
                         top: 0,
-                        behavior: 'smooth'
+                        behavior: "smooth",
                       });
                     }}
                     className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
@@ -143,9 +125,13 @@ export default function ChapterPage() {
       )}
 
       {readingMode === "SPECIAL" && (
-        <div className="fixed inset-0 bg-gray-900 overflow-hidden">
-          {/* Code cho SPECIAL UI sẽ thêm vào đây */}
-        </div>
+        <SpecialReader
+          chapter={chapter}
+          onNavigate={handleNavigation}
+          onModeChange={setMode}
+          readingMode={readingMode}
+          mangaId={params.id as string}
+        />
       )}
     </>
   );
