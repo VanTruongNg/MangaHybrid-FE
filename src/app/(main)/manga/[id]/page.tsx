@@ -17,6 +17,8 @@ import { User } from "@/types/user";
 import { useCreateComment } from "@/hooks/use-create-comment";
 import { useCreateReply } from "@/hooks/use-create-reply";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useFollowMangaStore } from "@/store/follow-manga.store";
+import { useFollowManga } from "@/hooks/use-follow-manga";
 
 const renderContentWithMentions = (
   content: string,
@@ -26,7 +28,7 @@ const renderContentWithMentions = (
   if (!mentions?.length) {
     // Xử lý hashtag nếu không có mentions
     return content.split(/\s+/).map((word, index) => {
-      if (word.startsWith('#')) {
+      if (word.startsWith("#")) {
         return (
           <span
             key={index}
@@ -36,11 +38,11 @@ const renderContentWithMentions = (
               router.push(`/tags/${word.slice(1)}`);
             }}
           >
-            {word}{' '}
+            {word}{" "}
           </span>
         );
       }
-      return word + ' ';
+      return word + " ";
     });
   }
 
@@ -58,7 +60,7 @@ const renderContentWithMentions = (
       parts.push(
         <span key={`text-${index}`}>
           {textBefore.split(/\s+/).map((word, wordIndex) => {
-            if (word.startsWith('#')) {
+            if (word.startsWith("#")) {
               return (
                 <span
                   key={`hashtag-${wordIndex}`}
@@ -68,11 +70,11 @@ const renderContentWithMentions = (
                     router.push(`/tags/${word.slice(1)}`);
                   }}
                 >
-                  {word}{' '}
+                  {word}{" "}
                 </span>
               );
             }
-            return word + ' ';
+            return word + " ";
           })}
         </span>
       );
@@ -100,7 +102,7 @@ const renderContentWithMentions = (
     parts.push(
       <span key="text-end">
         {remainingText.split(/\s+/).map((word, index) => {
-          if (word.startsWith('#')) {
+          if (word.startsWith("#")) {
             return (
               <span
                 key={`hashtag-end-${index}`}
@@ -110,11 +112,11 @@ const renderContentWithMentions = (
                   router.push(`/tags/${word.slice(1)}`);
                 }}
               >
-                {word}{' '}
+                {word}{" "}
               </span>
             );
           }
-          return word + ' ';
+          return word + " ";
         })}
       </span>
     );
@@ -147,25 +149,28 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
     setIsExpanded(!isExpanded);
   };
 
-  const handleReplyClick = (commentId: string, user: { _id: string; name: string }) => {
+  const handleReplyClick = (
+    commentId: string,
+    user: { _id: string; name: string }
+  ) => {
     if (replyingTo.commentId === commentId) {
       setReplyingTo({ commentId: null, replyToUser: null });
     } else {
-      setReplyingTo({ 
+      setReplyingTo({
         commentId,
-        replyToUser: user
+        replyToUser: user,
       });
     }
   };
 
-  const ReplyBox = ({ 
-    user, 
-    replyToUser, 
-    onRemoveTag, 
+  const ReplyBox = ({
+    user,
+    replyToUser,
+    onRemoveTag,
     isReplyComment = false,
     commentId,
     mangaId,
-  }: { 
+  }: {
     user: User;
     replyToUser?: { _id: string; name: string };
     onRemoveTag: () => void;
@@ -174,7 +179,8 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
     mangaId: string;
   }) => {
     const [replyContent, setReplyContent] = useState("");
-    const { mutate: createReply, isPending: isCreatingReply } = useCreateReply();
+    const { mutate: createReply, isPending: isCreatingReply } =
+      useCreateReply();
 
     return (
       <div className="flex items-start gap-3">
@@ -200,13 +206,25 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             {replyToUser && (
               <div className="flex items-center gap-1 mb-2">
                 <div className="bg-gray-200 px-2 py-1 rounded-lg flex items-center gap-1.5">
-                  <span className="text-xs text-gray-700">Đang trả l��i: {replyToUser.name}</span>
-                  <button 
+                  <span className="text-xs text-gray-700">
+                    Đang trả lời: {replyToUser.name}
+                  </span>
+                  <button
                     onClick={onRemoveTag}
                     className="text-gray-400 hover:text-gray-600"
                   >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-3 h-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -215,15 +233,17 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             <textarea
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              placeholder={isReplyComment ? "Trả lời bình luận..." : "Viết bình luận..."}
+              placeholder={
+                isReplyComment ? "Trả lời bình luận..." : "Viết bình luận..."
+              }
               className="w-full bg-transparent focus:outline-none min-h-[80px] text-xs resize-none text-gray-700"
             />
           </div>
           <div className="flex justify-end mt-2">
-            <button 
+            <button
               className={`px-3 py-1.5 bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors ${
-                isCreatingReply || !replyContent.trim() 
-                  ? "opacity-50 cursor-not-allowed" 
+                isCreatingReply || !replyContent.trim()
+                  ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-blue-600"
               }`}
               onClick={() => {
@@ -257,7 +277,7 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
 
   return (
     <div className="flex gap-3">
-      <div 
+      <div
         className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
         onClick={() => router.push(`/users/${comment.user._id}`)}
       >
@@ -267,7 +287,9 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             alt={comment.user.name}
             fill
             className="object-cover"
-            unoptimized={comment.user.avatarUrl.includes("googleusercontent.com")}
+            unoptimized={comment.user.avatarUrl.includes(
+              "googleusercontent.com"
+            )}
           />
         ) : (
           <div className="w-full h-full bg-blue-500 flex items-center justify-center">
@@ -281,10 +303,10 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
         <div className="bg-gray-100 p-3 rounded-lg">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <span 
+              <span
                 className={`font-semibold text-sm cursor-pointer hover:text-blue-600 ${
                   comment.user._id === manga.uploader._id
-                    ? "text-blue-600" 
+                    ? "text-blue-600"
                     : "text-gray-700"
                 }`}
                 onClick={() => router.push(`/users/${comment.user._id}`)}
@@ -305,7 +327,11 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             </span>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {renderContentWithMentions(comment.content, comment.mentions, router)}
+            {renderContentWithMentions(
+              comment.content,
+              comment.mentions,
+              router
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 mt-1.5 ml-1">
@@ -338,7 +364,9 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             <ReplyBox
               user={user as User}
               replyToUser={replyingTo.replyToUser || undefined}
-              onRemoveTag={() => setReplyingTo({ commentId: comment._id, replyToUser: null })}
+              onRemoveTag={() =>
+                setReplyingTo({ commentId: comment._id, replyToUser: null })
+              }
               commentId={comment._id}
               mangaId={manga._id}
             />
@@ -360,10 +388,14 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
               </div>
             ) : replies.length > 0 ? (
               [...replies]
-                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                .sort(
+                  (a, b) =>
+                    new Date(a.createdAt).getTime() -
+                    new Date(b.createdAt).getTime()
+                )
                 .map((reply) => (
                   <div key={reply._id} className="flex gap-2">
-                    <div 
+                    <div
                       className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
                       onClick={() => router.push(`/users/${reply.user._id}`)}
                     >
@@ -389,13 +421,15 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                       <div className="bg-gray-100 p-2 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
-                            <span 
+                            <span
                               className={`font-semibold text-xs cursor-pointer hover:text-blue-600 ${
-                                reply.user._id === manga.uploader._id 
-                                  ? "text-blue-600" 
+                                reply.user._id === manga.uploader._id
+                                  ? "text-blue-600"
                                   : "text-gray-700"
                               }`}
-                              onClick={() => router.push(`/users/${reply.user._id}`)}
+                              onClick={() =>
+                                router.push(`/users/${reply.user._id}`)
+                              }
                             >
                               {reply.user.name}
                             </span>
@@ -424,16 +458,27 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                         <>
                           <button
                             className="text-xs font-bold text-gray-700 hover:text-blue-500 transition-colors mt-1 ml-1"
-                            onClick={() => handleReplyClick(reply._id, reply.user)}
+                            onClick={() =>
+                              handleReplyClick(reply._id, reply.user)
+                            }
                           >
-                            {replyingTo.commentId === reply._id ? "Hủy" : "Trả lời"}
+                            {replyingTo.commentId === reply._id
+                              ? "Hủy"
+                              : "Trả lời"}
                           </button>
                           {replyingTo.commentId === reply._id && (
                             <div className="mt-2 ml-6">
                               <ReplyBox
                                 user={user}
-                                replyToUser={replyingTo.replyToUser || undefined}
-                                onRemoveTag={() => setReplyingTo({ commentId: reply._id, replyToUser: null })}
+                                replyToUser={
+                                  replyingTo.replyToUser || undefined
+                                }
+                                onRemoveTag={() =>
+                                  setReplyingTo({
+                                    commentId: reply._id,
+                                    replyToUser: null,
+                                  })
+                                }
                                 isReplyComment
                                 commentId={comment._id}
                                 mangaId={manga._id}
@@ -472,7 +517,12 @@ export default function MangaPage() {
   const { user } = useAuth();
   const { setReadingHistory } = useReadingHistoryStore();
   const [commentContent, setCommentContent] = useState("");
-  const { mutate: createComment, isPending: isCreatingComment } = useCreateComment();
+  const { mutate: createComment, isPending: isCreatingComment } =
+    useCreateComment();
+  const [hoverRating, setHoverRating] = useState(0);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [userRating, setUserRating] = useState<number | null>(null);
 
   useEffect(() => {
     if (user?.readingHistory) {
@@ -530,32 +580,97 @@ export default function MangaPage() {
   const FollowButton = () => {
     const { user } = useAuth();
     const mangaId = params.id as string;
-    const isFollowed = user?.followingManga?.some(
-      (manga) => manga._id === mangaId
-    );
+    const { isFollowed, setFollowedMangaIds } = useFollowMangaStore();
+    const { mutate: toggleFollow, isPending } = useFollowManga(mangaId);
+    const [localFollowed, setLocalFollowed] = useState(false);
+
+    // Sync store với user data và cập nhật local state
+    useEffect(() => {
+      if (user?.followingManga) {
+        const followedIds = user.followingManga.map((manga) => manga._id);
+        setFollowedMangaIds(followedIds);
+        setLocalFollowed(followedIds.includes(mangaId));
+      } else {
+        setFollowedMangaIds([]);
+        setLocalFollowed(false);
+      }
+    }, [user?.followingManga, mangaId, setFollowedMangaIds]);
+
+    // Cập nhật local state khi store thay đổi
+    useEffect(() => {
+      setLocalFollowed(isFollowed(mangaId));
+    }, [isFollowed, mangaId]);
+
+    const handleFollowClick = () => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // Cập nhật UI ngay lập tức
+      setLocalFollowed(!localFollowed);
+
+      toggleFollow(
+        {
+          action: localFollowed ? "unfollow" : "follow",
+        },
+        {
+          onError: () => {
+            // Rollback UI nếu có lỗi
+            setLocalFollowed(localFollowed);
+          },
+        }
+      );
+    };
 
     return (
       <button
-        className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md border-2 shadow-sm w-full sm:w-auto ${
+        className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md border-2 shadow-sm w-full sm:w-auto relative ${
           !user
             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-75"
-            : isFollowed
+            : localFollowed
             ? "bg-gray-200 text-gray-700 hover:bg-gray-300 border-gray-200"
             : "bg-blue-500 text-white hover:bg-blue-600 border-blue-500"
         }`}
-        disabled={!user}
+        onClick={handleFollowClick}
+        disabled={!user || isPending}
       >
-        <Heart
-          className="w-3.5 h-3.5"
-          fill={isFollowed || !user ? "currentColor" : "white"}
-        />
-        {!user
-          ? "ĐĂNG NHẬP ĐỂ THEO DÕI"
-          : isFollowed
-          ? "ĐÃ THEO DÕI"
-          : "THEO DÕI TRUYỆN"}
+        {isPending ? (
+          <div className="flex items-center justify-center gap-2 min-w-[120px]">
+            <div className="absolute inset-0 bg-black/10 rounded-md" />
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-current border-r-transparent animate-spin" />
+            <span className="opacity-50">
+              {localFollowed ? "ĐÃ THEO DÕI" : "THEO DÕI TRUYỆN"}
+            </span>
+          </div>
+        ) : (
+          <>
+            <Heart
+              className="w-3.5 h-3.5"
+              fill={localFollowed || !user ? "currentColor" : "white"}
+            />
+            {!user
+              ? "ĐĂNG NHẬP ĐỂ THEO DÕI"
+              : localFollowed
+              ? "ĐÃ THEO DÕI"
+              : "THEO DÕI TRUYỆN"}
+          </>
+        )}
       </button>
     );
+  };
+
+  const handleReadFirstChapter = () => {
+    if (!manga || !manga.chapters || manga.chapters.length === 0) return;
+
+    const sortedChapters = [...manga.chapters].sort((a, b) => {
+      const aNum = parseFloat(a.chapterName.replace(/[^0-9.]/g, ''));
+      const bNum = parseFloat(b.chapterName.replace(/[^0-9.]/g, ''));
+      return aNum - bNum;
+    });
+    
+    const firstChapter = sortedChapters[0];
+    router.push(`/manga/${manga._id}/chapter/${firstChapter._id}`);
   };
 
   if (isLoading) return <MangaLoadingSkeleton />;
@@ -610,9 +725,17 @@ export default function MangaPage() {
         {/* Action Buttons - Desktop */}
         <div className="absolute hidden lg:flex items-center gap-3 left-[calc(18.4rem+2rem)] top-[120px] z-10">
           <FollowButton />
-          <button className="w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-xs font-bold text-gray-700 hover:bg-black hover:text-white transition-colors rounded-md shadow-sm">
+          <button 
+            className={`w-auto flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md shadow-sm ${
+              !manga?.chapters?.length 
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed" 
+                : "bg-gray-300 text-gray-700 hover:bg-black hover:text-white"
+            }`}
+            onClick={handleReadFirstChapter}
+            disabled={!manga?.chapters?.length}
+          >
             <BookOpen className="w-3.5 h-3.5" />
-            ĐỌC TỪ CHƯƠNG 1
+            {!manga?.chapters?.length ? "CHƯA CÓ CHAPTER" : "ĐỌC TỪ CHƯƠNG 1"}
           </button>
         </div>
       </div>
@@ -719,7 +842,11 @@ export default function MangaPage() {
                   ?.map((chapter, index) => (
                     <div
                       key={chapter._id}
-                      onClick={() => router.push(`/manga/${params.id}/chapter/${chapter._id}`)}
+                      onClick={() =>
+                        router.push(
+                          `/manga/${params.id}/chapter/${chapter._id}`
+                        )
+                      }
                       className={`${
                         index % 2 === 0 ? "bg-gray-200/50" : "bg-white"
                       } hover:bg-gray-200 py-3 px-4 shadow-sm cursor-pointer transition-colors w-full border-l-8 ${
@@ -771,9 +898,11 @@ export default function MangaPage() {
               <div className="p-4">
                 <h3 className="font-bold text-black mb-4">
                   Bình luận{" "}
-                  {manga.comments?.length > 0 && `(${
-                    manga.comments.reduce((total, comment) => total + 1 + comment.replies.length, 0)
-                  })`}
+                  {manga.comments?.length > 0 &&
+                    `(${manga.comments.reduce(
+                      (total, comment) => total + 1 + comment.replies.length,
+                      0
+                    )})`}
                 </h3>
 
                 {/* Comment Input - Only show for logged in users */}
@@ -787,7 +916,9 @@ export default function MangaPage() {
                             alt={user.name}
                             fill
                             className="object-cover"
-                            unoptimized={user.avatarUrl.includes("googleusercontent.com")}
+                            unoptimized={user.avatarUrl.includes(
+                              "googleusercontent.com"
+                            )}
                           />
                         ) : (
                           <div className="w-full h-full bg-blue-500 flex items-center justify-center">
@@ -805,15 +936,16 @@ export default function MangaPage() {
                           className="w-full p-3 rounded-lg bg-gray-100 focus:bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] text-sm transition-colors text-gray-700"
                         />
                         <div className="flex justify-end mt-2">
-                          <button 
+                          <button
                             className={`px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors ${
-                              isCreatingComment || !commentContent.trim() 
-                                ? "opacity-50 cursor-not-allowed" 
+                              isCreatingComment || !commentContent.trim()
+                                ? "opacity-50 cursor-not-allowed"
                                 : "hover:bg-blue-600"
                             }`}
                             onClick={() => {
-                              if (!commentContent.trim() || isCreatingComment) return;
-                              
+                              if (!commentContent.trim() || isCreatingComment)
+                                return;
+
                               createComment(
                                 {
                                   content: commentContent.trim(),
@@ -826,9 +958,13 @@ export default function MangaPage() {
                                 }
                               );
                             }}
-                            disabled={isCreatingComment || !commentContent.trim()}
+                            disabled={
+                              isCreatingComment || !commentContent.trim()
+                            }
                           >
-                            {isCreatingComment ? "Đang gửi..." : "Gửi bình luận"}
+                            {isCreatingComment
+                              ? "Đang gửi..."
+                              : "Gửi bình luận"}
                           </button>
                         </div>
                       </div>
@@ -852,11 +988,15 @@ export default function MangaPage() {
                 {manga.comments?.length > 0 ? (
                   <div className="space-y-4">
                     {[...manga.comments]
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt).getTime() -
+                          new Date(a.createdAt).getTime()
+                      )
                       .map((comment) => (
-                        <CommentItem 
-                          key={comment._id} 
-                          comment={comment} 
+                        <CommentItem
+                          key={comment._id}
+                          comment={comment}
                           manga={manga}
                         />
                       ))}
@@ -870,8 +1010,136 @@ export default function MangaPage() {
             </div>
           </div>
 
-          {/* Sidebar - Cùng Uploader */}
+          {/* Sidebar - Rating & Likes + Cùng Uploader */}
           <div className="hidden lg:block w-full lg:w-[25%] px-4 lg:pr-4 lg:pl-2 mt-1">
+            {/* Rating & Likes Container */}
+            <div className="bg-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold text-black mb-4">
+                Đánh giá & Tương tác
+              </h3>
+
+              <div className="space-y-4">
+                {/* Rating Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex items-center cursor-pointer"
+                        onMouseLeave={() => setHoverRating(0)}
+                      >
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <div
+                            key={star}
+                            className="relative group"
+                            onMouseEnter={() => setHoverRating(star)}
+                            onClick={() => {
+                              if (!user) {
+                                router.push("/login");
+                                return;
+                              }
+                              setSelectedRating(star);
+                              setIsRatingModalOpen(true);
+                            }}
+                          >
+                            <svg
+                              className={`w-7 h-7 transition-colors duration-150 ${
+                                star <=
+                                (hoverRating || Math.round(manga.averageRating))
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                              } ${
+                                user ? "hover:scale-110" : ""
+                              } transform transition-transform`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+                              <div className="bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap">
+                                {star === 1 && "Dở tệ"}
+                                {star === 2 && "Tạm được"}
+                                {star === 3 && "Bình thường"}
+                                {star === 4 && "Hay"}
+                                {star === 5 && "Tuyệt vời"}
+                              </div>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                                <div className="border-4 border-transparent border-t-gray-800"></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-lg font-bold text-gray-700">
+                        {manga.averageRating.toFixed(1)}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {manga.ratingCount} lượt đánh giá
+                    </span>
+                  </div>
+
+                  {/* Rating message - Hiển thị rating của user */}
+                  <div className="text-center">
+                    {!user ? (
+                      <span className="text-xs text-gray-500">
+                        Đăng nhập để đánh giá
+                      </span>
+                    ) : userRating ? (
+                      <span className="text-xs font-medium text-blue-500">
+                        Bạn đã đánh giá {userRating} sao
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-500">
+                        Nhập vào sao để đánh giá
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Likes & Dislikes */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-green-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                      </svg>
+                      <span className="font-semibold text-gray-700">
+                        {manga.like.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-red-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                      </svg>
+                      <span className="font-semibold text-gray-700">
+                        {manga.disLike.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* View Count */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                  <span className="text-sm text-gray-600">Lượt xem</span>
+                  <span className="font-semibold text-gray-700">
+                    {manga.view.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cùng Uploader Container - giữ nguyên code cũ */}
             <div className="p-4 rounded-lg">
               <h3 className="font-bold text-black mb-4">
                 Cùng Uploader {totalManga > 5 && `(${totalManga})`}
@@ -1013,9 +1281,17 @@ export default function MangaPage() {
               <FollowButton />
             </div>
             <div className="w-full sm:w-auto">
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-xs font-bold text-gray-700 hover:bg-black hover:text-white transition-colors rounded-md shadow-sm">
+              <button 
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md shadow-sm ${
+                  !manga?.chapters?.length 
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed" 
+                    : "bg-gray-300 text-gray-700 hover:bg-black hover:text-white"
+                }`}
+                onClick={handleReadFirstChapter}
+                disabled={!manga?.chapters?.length}
+              >
                 <BookOpen className="w-3.5 h-3.5" />
-                ĐỌC TỪ CHƯƠNG 1
+                {!manga?.chapters?.length ? "CHƯA CÓ CHAPTER" : "ĐỌC TỪ CHƯƠNG 1"}
               </button>
             </div>
           </div>
@@ -1024,6 +1300,60 @@ export default function MangaPage() {
 
       {/* Spacing div */}
       <div className="h-32 lg:h-32" />
+
+      {/* Rating Modal */}
+      {isRatingModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Đánh giá truyện
+            </h3>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                  key={star}
+                  className={`w-8 h-8 ${
+                    star <= selectedRating ? "text-yellow-400" : "text-gray-300"
+                  }`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+            <p className="text-center text-sm text-gray-600 mb-6">
+              {selectedRating === 1 && "Dở tệ 😞"}
+              {selectedRating === 2 && "Tạm được 😐"}
+              {selectedRating === 3 && "Bình thường 🙂"}
+              {selectedRating === 4 && "Hay 😊"}
+              {selectedRating === 5 && "Tuyệt vời 🤩"}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setIsRatingModalOpen(false);
+                  setSelectedRating(0);
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                onClick={() => {
+                  // Gửi request rating ở đây
+                  // Sau khi request thành công:
+                  setUserRating(selectedRating);
+                  setIsRatingModalOpen(false);
+                }}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
