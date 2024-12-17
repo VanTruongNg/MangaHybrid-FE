@@ -1,10 +1,10 @@
 export interface User {
   _id: string;
-  name: string; 
+  name: string;
   email: string;
-  role: string;
-  isVerified: boolean;
   avatarUrl?: string;
+  role: "user" | "admin";
+  isVerified: boolean;
   followers: UserBasic[];
   following: UserBasic[];
   uploadedManga: MangaBasic[];
@@ -33,8 +33,16 @@ export interface MangaBasic {
 }
 
 export interface ReadingHistory {
+  _id: string;
   manga: MangaBasic;
-  chapter: ChapterBasic;
+  chapters: {
+    _id: string;
+    chapter: {
+      _id: string;
+      chapterName: string;
+    };
+    readAt: string;
+  }[];
   updatedAt: string;
 }
 
@@ -74,4 +82,14 @@ export interface Rating {
   rating: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PublicProfile {
+  _id: string;
+  name: string;
+  avatarUrl?: string;
+  followers: UserBasic[];
+  following: UserBasic[];
+  uploadedManga: MangaBasic[];
+  createdAt: string;
 } 

@@ -16,12 +16,33 @@ import type { Comment, CommentMention, MangaDetail } from "@/types/manga";
 import { User } from "@/types/user";
 import { useCreateComment } from "@/hooks/use-create-comment";
 import { useCreateReply } from "@/hooks/use-create-reply";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 const renderContentWithMentions = (
   content: string,
-  mentions: CommentMention[]
+  mentions: CommentMention[],
+  router: AppRouterInstance
 ) => {
-  if (!mentions?.length) return content;
+  if (!mentions?.length) {
+    // Xử lý hashtag nếu không có mentions
+    return content.split(/\s+/).map((word, index) => {
+      if (word.startsWith('#')) {
+        return (
+          <span
+            key={index}
+            className="text-blue-500 font-semibold hover:underline cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/tags/${word.slice(1)}`);
+            }}
+          >
+            {word}{' '}
+          </span>
+        );
+      }
+      return word + ' ';
+    });
+  }
 
   const sortedMentions = [...mentions].sort(
     (a, b) => a.startIndex - b.startIndex
@@ -32,9 +53,27 @@ const renderContentWithMentions = (
 
   sortedMentions.forEach((mention, index) => {
     if (mention.startIndex > lastIndex) {
+      // Xử lý text trước mention, bao gồm cả hashtag
+      const textBefore = content.slice(lastIndex, mention.startIndex);
       parts.push(
         <span key={`text-${index}`}>
-          {content.slice(lastIndex, mention.startIndex)}
+          {textBefore.split(/\s+/).map((word, wordIndex) => {
+            if (word.startsWith('#')) {
+              return (
+                <span
+                  key={`hashtag-${wordIndex}`}
+                  className="text-blue-500 font-semibold hover:underline cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/tags/${word.slice(1)}`);
+                  }}
+                >
+                  {word}{' '}
+                </span>
+              );
+            }
+            return word + ' ';
+          })}
         </span>
       );
     }
@@ -45,6 +84,7 @@ const renderContentWithMentions = (
         className="text-blue-500 font-semibold hover:underline cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
+          router.push(`/users/${mention.userId._id}`);
         }}
       >
         {mention.username}
@@ -55,7 +95,29 @@ const renderContentWithMentions = (
   });
 
   if (lastIndex < content.length) {
-    parts.push(<span key="text-end">{content.slice(lastIndex)}</span>);
+    // Xử lý text còn lại sau mention cuối cùng
+    const remainingText = content.slice(lastIndex);
+    parts.push(
+      <span key="text-end">
+        {remainingText.split(/\s+/).map((word, index) => {
+          if (word.startsWith('#')) {
+            return (
+              <span
+                key={`hashtag-end-${index}`}
+                className="text-blue-500 font-semibold hover:underline cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/tags/${word.slice(1)}`);
+                }}
+              >
+                {word}{' '}
+              </span>
+            );
+          }
+          return word + ' ';
+        })}
+      </span>
+    );
   }
 
   return <>{parts}</>;
@@ -79,6 +141,7 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
     isExpanded ? comment._id : undefined
   );
   const { user } = useAuth();
+  const router = useRouter();
 
   const handleViewReplies = () => {
     setIsExpanded(!isExpanded);
@@ -137,7 +200,7 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             {replyToUser && (
               <div className="flex items-center gap-1 mb-2">
                 <div className="bg-gray-200 px-2 py-1 rounded-lg flex items-center gap-1.5">
-                  <span className="text-xs text-gray-700">Đang trả lời: {replyToUser.name}</span>
+                  <span className="text-xs text-gray-700">Đang trả l��i: {replyToUser.name}</span>
                   <button 
                     onClick={onRemoveTag}
                     className="text-gray-400 hover:text-gray-600"
@@ -194,16 +257,17 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
 
   return (
     <div className="flex gap-3">
-      <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+      <div 
+        className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
+        onClick={() => router.push(`/users/${comment.user._id}`)}
+      >
         {comment.user.avatarUrl ? (
           <Image
             src={comment.user.avatarUrl}
             alt={comment.user.name}
             fill
             className="object-cover"
-            unoptimized={comment.user.avatarUrl.includes(
-              "googleusercontent.com"
-            )}
+            unoptimized={comment.user.avatarUrl.includes("googleusercontent.com")}
           />
         ) : (
           <div className="w-full h-full bg-blue-500 flex items-center justify-center">
@@ -217,11 +281,14 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
         <div className="bg-gray-100 p-3 rounded-lg">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <span className={`font-semibold text-sm ${
-                comment.user._id === manga.uploader._id
-                  ? "text-blue-600" 
-                  : "text-gray-700"
-              }`}>
+              <span 
+                className={`font-semibold text-sm cursor-pointer hover:text-blue-600 ${
+                  comment.user._id === manga.uploader._id
+                    ? "text-blue-600" 
+                    : "text-gray-700"
+                }`}
+                onClick={() => router.push(`/users/${comment.user._id}`)}
+              >
                 {comment.user.name}
               </span>
               {comment.user._id === manga.uploader._id && (
@@ -238,7 +305,7 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
             </span>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {renderContentWithMentions(comment.content, comment.mentions)}
+            {renderContentWithMentions(comment.content, comment.mentions, router)}
           </p>
         </div>
         <div className="flex items-center gap-2 mt-1.5 ml-1">
@@ -296,7 +363,10 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                 .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                 .map((reply) => (
                   <div key={reply._id} className="flex gap-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                    <div 
+                      className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
+                      onClick={() => router.push(`/users/${reply.user._id}`)}
+                    >
                       {reply.user.avatarUrl ? (
                         <Image
                           src={reply.user.avatarUrl}
@@ -319,11 +389,14 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                       <div className="bg-gray-100 p-2 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
-                            <span className={`font-semibold text-xs ${
-                              reply.user._id === manga.uploader._id 
-                                ? "text-blue-600" 
-                                : "text-gray-700"
-                            }`}>
+                            <span 
+                              className={`font-semibold text-xs cursor-pointer hover:text-blue-600 ${
+                                reply.user._id === manga.uploader._id 
+                                  ? "text-blue-600" 
+                                  : "text-gray-700"
+                              }`}
+                              onClick={() => router.push(`/users/${reply.user._id}`)}
+                            >
                               {reply.user.name}
                             </span>
                             {reply.user._id === manga.uploader._id && (
@@ -342,7 +415,8 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                         <p className="text-xs text-gray-600 leading-relaxed">
                           {renderContentWithMentions(
                             reply.content,
-                            reply.mentions
+                            reply.mentions,
+                            router
                           )}
                         </p>
                       </div>

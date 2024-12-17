@@ -11,12 +11,15 @@ export const useReadingHistoryStore = create<ReadingHistoryStore>((set, get) => 
   readingHistory: [],
   
   setReadingHistory: (history: ReadingHistory[]) => {
-    set({ readingHistory: history });
+    set({ readingHistory: Array.isArray(history) ? history : [] });
   },
 
   isRead: (chapterId: string) => {
-    return get().readingHistory.some(
-      (history) => history.chapter._id === chapterId
+    const { readingHistory } = get();
+    return Array.isArray(readingHistory) && readingHistory.some(history => 
+      Array.isArray(history.chapters) && history.chapters.some(chapter => 
+        chapter.chapter._id === chapterId
+      )
     );
   }
 })); 

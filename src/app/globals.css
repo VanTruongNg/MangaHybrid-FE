@@ -81,6 +81,21 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .custom-scrollbar {
+    @apply overflow-auto;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+  }
 }
 
 /* Custom Swiper Styles */
@@ -110,4 +125,34 @@ body {
 .swiper-pagination-bullet-active {
   width: 1.5rem !important;
   background: hsl(var(--primary));
+}
+
+@layer components {
+  /* Custom Tab Styles */
+  .tabs-list {
+    @apply relative;
+  }
+
+  .tabs-list::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-[1px] bg-gray-100;
+  }
+
+  .tab-trigger {
+    @apply relative pb-3;
+  }
+
+  .tab-trigger::after {
+    content: '';
+    @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[2px] bg-blue-500 
+           opacity-0 scale-x-0 transition-all duration-300;
+  }
+
+  .tab-trigger[data-state="active"]::after {
+    @apply opacity-100 scale-x-100;
+  }
+
+  .tab-trigger:hover {
+    @apply text-gray-600;
+  }
 }
