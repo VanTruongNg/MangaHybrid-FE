@@ -151,6 +151,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     const currentUser = useAuthStore.getState().user;
     const isFromMe = currentUser && message.sender._id === currentUser._id;
 
+    const existingMessages = state.privateMessages[roomId] || [];
+    const hasTempMessage = existingMessages.some(
+      msg => 'tempId' in msg && msg.sender._id === currentUser?._id && msg.content === message.content
+    );
+
     const updatedRooms = state.privateRooms.map(room => {
       if (room._id === roomId) {
         return {
@@ -168,7 +173,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       privateRooms: updatedRooms,
       privateMessages: {
         ...state.privateMessages,
-        [roomId]: [...(state.privateMessages[roomId] || []), message]
+        [roomId]: hasTempMessage 
+          ? existingMessages 
+          : [...existingMessages, message]
       }
     };
   }),
@@ -197,7 +204,6 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     const virtualMessages = state.privateMessages[virtualRoomId] || [];
     const realMessages = state.privateMessages[realRoomId] || [];
 
-    // Merge messages và xóa virtual room
     const newPrivateMessages = {
       ...state.privateMessages,
       [realRoomId]: [...realMessages, ...virtualMessages],

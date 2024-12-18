@@ -1,3 +1,4 @@
+import { ChatParticipant } from '@/types/socket';
 import { create } from 'zustand';
 
 interface ChatUIState {

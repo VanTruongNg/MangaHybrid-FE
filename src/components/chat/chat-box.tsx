@@ -143,10 +143,8 @@ export function ChatBox({ onClose }: ChatBoxProps) {
     let receiverId: string;
 
     if (activePrivateChat.type === 'virtual') {
-      // Chat mới - gửi userId của người nhận
       receiverId = activePrivateChat.id;
     } else {
-      // Chat trong room có sẵn - cần lấy userId của người nhận
       const room = chatStore.privateRooms.find(r => r._id === activePrivateChat.id);
       const otherUser = room?.participants.find(p => p._id !== currentUser._id);
       if (!otherUser) return;
@@ -164,7 +162,6 @@ export function ChatBox({ onClose }: ChatBoxProps) {
     if (!activePrivateChat) return null;
 
     if (activePrivateChat.type === 'virtual') {
-      // UI ảo - hiển thị thông tin từ user được lưu trong activePrivateChat
       const user = activePrivateChat.user;
       return (
         <div className="flex items-center gap-2">
@@ -178,7 +175,6 @@ export function ChatBox({ onClose }: ChatBoxProps) {
         </div>
       );
     } else {
-      // Room thật - lấy thông tin từ room trong store
       const room = chatStore.privateRooms.find(r => r._id === activePrivateChat.id);
       const otherUser = room?.participants.find(p => p._id !== currentUser?._id);
       return (

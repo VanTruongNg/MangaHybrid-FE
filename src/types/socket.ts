@@ -112,7 +112,7 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   _id: string;
-  roomId: PrivateRoom;
+  roomId: string;
   sender: ChatUser;
   content: string;
   readBy: ChatUser[];
@@ -147,7 +147,7 @@ export interface PrivateRoom {
 export interface PrivateMessageEvent {
   message: {
     _id: string;
-    roomId: PrivateRoom;
+    roomId: string;
     sender: ChatUser;
     content: string;
     readBy: ChatUser[];

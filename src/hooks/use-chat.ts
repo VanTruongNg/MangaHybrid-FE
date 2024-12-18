@@ -41,9 +41,10 @@ export const useChat = () => {
     try {
       const tempId = `temp-${Date.now()}`;
       
-      const virtualRoomId = `virtual_${receiverId}`;
-      
-      useChatStore.getState().addTempPrivateMessage(virtualRoomId, {
+      const room = useChatStore.getState().findRoomByParticipant(receiverId);
+      const roomId = room ? room._id : `virtual_${receiverId}`;
+
+      useChatStore.getState().addTempPrivateMessage(roomId, {
         tempId,
         content: content.trim(),
         sender: {
@@ -51,6 +52,7 @@ export const useChat = () => {
           name: user.name,
           avatarUrl: user.avatarUrl,
         },
+        roomId,
         readBy: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -59,7 +61,7 @@ export const useChat = () => {
 
       handleSendPrivateMessage({
         tempId,
-        content: content.trim(),
+        content: content.trim(), 
         receiverId
       });
       
