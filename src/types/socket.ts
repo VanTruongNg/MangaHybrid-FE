@@ -54,12 +54,13 @@ export interface TempMessage extends Omit<PublicMessage, '_id'> {
 
 export interface MessageAckResponse {
   tempId: string;
-  message: PublicMessage;
+  message: PublicMessage | ChatMessage;
+  room?: PrivateRoom;
 }
 
 export interface ServerToClientEvents {
   initializeSocket: (data: {
-    rooms: Room[];
+    rooms: PrivateRoom[];
     publicMessages: PublicMessage[];
     unreadNotifications: Notification[];
   }) => void;
@@ -67,11 +68,27 @@ export interface ServerToClientEvents {
   newMessage: (message: PublicMessage) => void;
   messageError: (error: MessageError) => void;
   messageAck: (ack: MessageAckResponse) => void;
+  newPrivateMessage: (data: PrivateMessageEvent) => void;
+  roomUpdate: (data: { rooms: PrivateRoom[] }) => void;
+  openedPrivateRoom: (data: {
+    roomId: string;
+    messages: ChatMessage[];
+  }) => void;
+  leftPrivateRoom: (data: { roomId: string }) => void;
+  error: (data: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {
   _dummy: undefined;
   sendPublicMessage: (message: MessageAck) => void;
+  sendPrivateMessage: (message: {
+    tempId: string;
+    content: string;
+    receiverId: string;
+  }) => void;
+  openPrivateRoom: (data: { roomId: string }) => void;
+  leavePrivateRoom: (data: { roomId: string }) => void;
+  markMessageRead: (messageId: string) => void;
 }
 
 export type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -95,14 +112,54 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   _id: string;
-  room: ChatRoom;
+  roomId: PrivateRoom;
   sender: ChatUser;
   content: string;
   readBy: ChatUser[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface MessageAck {
   tempId: string;
   content: string;
+}
+
+export interface ChatParticipant {
+  _id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface PrivateRoom {
+  _id: string;
+  type: 'private';
+  participants: ChatParticipant[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  lastSender?: ChatParticipant;
+  unreadCount?: number;
+}
+
+export interface PrivateMessageEvent {
+  message: {
+    _id: string;
+    roomId: PrivateRoom;
+    sender: ChatUser;
+    content: string;
+    readBy: ChatUser[];
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+  };
+  room: PrivateRoom;
+}
+
+export interface TempPrivateMessage extends Omit<ChatMessage, '_id'> {
+  tempId: string;
+  isSending?: boolean;
+  error?: string;
 } 

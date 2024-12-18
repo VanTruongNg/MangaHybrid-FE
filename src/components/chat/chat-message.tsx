@@ -8,7 +8,7 @@ interface ChatMessageProps {
   user: string;
   avatar: string;
   message: string;
-  timestamp: string;
+  timestamp: string | Date;
   senderId: string;
   isGrouped?: boolean;
   isSending?: boolean;
@@ -30,8 +30,11 @@ export function ChatMessage({
   const { user: currentUser } = useAuth();
   const isOwner = currentUser?._id === senderId;
 
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatMessageTime = (timestamp: string | Date) => {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    if (isNaN(date.getTime())) {
+      return '';
+    }
     return format(date, 'HH:mm');
   };
 

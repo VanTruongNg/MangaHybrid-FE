@@ -664,11 +664,11 @@ export default function MangaPage() {
     if (!manga || !manga.chapters || manga.chapters.length === 0) return;
 
     const sortedChapters = [...manga.chapters].sort((a, b) => {
-      const aNum = parseFloat(a.chapterName.replace(/[^0-9.]/g, ''));
-      const bNum = parseFloat(b.chapterName.replace(/[^0-9.]/g, ''));
+      const aNum = parseFloat(a.chapterName.replace(/[^0-9.]/g, ""));
+      const bNum = parseFloat(b.chapterName.replace(/[^0-9.]/g, ""));
       return aNum - bNum;
     });
-    
+
     const firstChapter = sortedChapters[0];
     router.push(`/manga/${manga._id}/chapter/${firstChapter._id}`);
   };
@@ -725,10 +725,10 @@ export default function MangaPage() {
         {/* Action Buttons - Desktop */}
         <div className="absolute hidden lg:flex items-center gap-3 left-[calc(18.4rem+2rem)] top-[120px] z-10">
           <FollowButton />
-          <button 
+          <button
             className={`w-auto flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md shadow-sm ${
-              !manga?.chapters?.length 
-                ? "bg-gray-200 text-gray-500 cursor-not-allowed" 
+              !manga?.chapters?.length
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-gray-300 text-gray-700 hover:bg-black hover:text-white"
             }`}
             onClick={handleReadFirstChapter}
@@ -1281,17 +1281,19 @@ export default function MangaPage() {
               <FollowButton />
             </div>
             <div className="w-full sm:w-auto">
-              <button 
+              <button
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold transition-colors rounded-md shadow-sm ${
-                  !manga?.chapters?.length 
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed" 
+                  !manga?.chapters?.length
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-gray-300 text-gray-700 hover:bg-black hover:text-white"
                 }`}
                 onClick={handleReadFirstChapter}
                 disabled={!manga?.chapters?.length}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                {!manga?.chapters?.length ? "CHƯA CÓ CHAPTER" : "ĐỌC TỪ CHƯƠNG 1"}
+                {!manga?.chapters?.length
+                  ? "CHƯA CÓ CHAPTER"
+                  : "ĐỌC TỪ CHƯƠNG 1"}
               </button>
             </div>
           </div>

@@ -10,12 +10,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { MessageCircle, UserPlus, UserCheck, Grid } from "lucide-react";
 import { useEffect } from "react";
 import { useFollowUser } from "@/hooks/use-follow-user";
+import { useChatUIStore } from "@/store/chat-ui.store";
+import { useChatStore } from "@/store/chat.store";
 
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { data: user, isLoading, error } = useUserProfile(params.id as string);
   const { user: currentUser } = useAuth();
+  const { openPrivateChat, openExistingRoom } = useChatUIStore();
+  const chatStore = useChatStore();
 
   useEffect(() => {
     if (currentUser && params.id === currentUser._id) {
@@ -48,7 +52,20 @@ export default function UserProfilePage() {
       router.push('/login');
       return;
     }
-    router.push(`/messages/${user?._id}`);
+
+    if (!user) return;
+
+    const existingRoom = chatStore.findRoomByParticipant(user._id);
+
+    if (existingRoom) {
+      openExistingRoom(existingRoom._id);
+    } else {
+      openPrivateChat(user._id, {
+        _id: user._id,
+        name: user.name,
+        avatarUrl: user.avatarUrl
+      });
+    }
   };
 
   if (isLoading) {
