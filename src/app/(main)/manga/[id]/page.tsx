@@ -8,17 +8,57 @@ import { vi } from "date-fns/locale";
 import { Clock, Heart, BookOpen, Download, ChevronDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import MangaLoadingSkeleton from "./loading-skeleton";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { useReadingHistoryStore } from "@/store/reading-history.store";
 import { useRelatedManga } from "@/hooks/use-related-manga";
 import { useCommentReplies } from "@/hooks/use-comment-replies";
 import type { Comment, CommentMention, MangaDetail } from "@/types/manga";
-import { User } from "@/types/user";
+import type { User } from "@/types/user";
 import { useCreateComment } from "@/hooks/use-create-comment";
 import { useCreateReply } from "@/hooks/use-create-reply";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useFollowMangaStore } from "@/store/follow-manga.store";
 import { useFollowManga } from "@/hooks/use-follow-manga";
+import { useRateManga } from "@/hooks/use-rate-manga";
+import { useMangaDetailStore } from "@/store/manga-detail.store";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { cn } from "@/lib/utils";
+import { useDropzone } from "react-dropzone";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCreateChapter } from "@/hooks/use-create-chapter";
+
+export enum ChapterType {
+  NORMAL = "normal",
+  SPECIAL = "special",
+  ONESHOT = "oneshot",
+}
 
 const renderContentWithMentions = (
   content: string,
@@ -500,11 +540,101 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
   );
 };
 
+const RatingStars = memo(
+  ({
+    rating,
+    user,
+    onRate,
+  }: {
+    rating: number;
+    user: User | null;
+    onRate: (rating: number) => void;
+  }) => {
+    const [hoverRating, setHoverRating] = useState(0);
+    const router = useRouter();
+
+    return (
+      <div
+        className="flex items-center cursor-pointer"
+        onMouseLeave={() => setHoverRating(0)}
+      >
+        {[1, 2, 3, 4, 5].map((star) => (
+          <div
+            key={star}
+            className="relative group"
+            onMouseEnter={() => setHoverRating(star)}
+            onClick={() => {
+              if (!user) {
+                router.push("/login");
+                return;
+              }
+              onRate(star);
+            }}
+          >
+            <svg
+              className={`w-7 h-7 transition-colors duration-150 ${
+                star <= (hoverRating || Math.round(rating))
+                  ? "text-yellow-400"
+                  : "text-gray-300"
+              } ${
+                user ? "hover:scale-110 transform-gpu hover:z-10" : ""
+              } transform transition-transform`}
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              style={{ isolation: "isolate" }}
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
+              <div className="bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap">
+                {star === 1 && "Dở tệ"}
+                {star === 2 && "Tạm được"}
+                {star === 3 && "Bình thường"}
+                {star === 4 && "Hay"}
+                {star === 5 && "Tuyệt vời"}
+              </div>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+                <div className="border-4 border-transparent border-t-gray-800"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+);
+
+RatingStars.displayName = "RatingStars";
+
+// Validation schema
+const formSchema = z.object({
+  chapterType: z.enum([
+    ChapterType.NORMAL,
+    ChapterType.SPECIAL,
+    ChapterType.ONESHOT,
+  ]),
+  number: z.number().min(0).optional(),
+  chapterTitle: z.string().optional(),
+});
+
+// Type cho form values
+type FormValues = {
+  chapterType: ChapterType;
+  number?: number;
+  chapterTitle?: string;
+};
+
 export default function MangaPage() {
   // Hooks & States
   const params = useParams();
   const router = useRouter();
-  const { manga, isLoading, error } = useMangaDetail(params.id as string);
+  const { manga, isLoading, error } = useMangaDetail(params.id as string) as {
+    manga: MangaDetail;
+    isLoading: boolean;
+    error: unknown;
+  };
   const {
     relatedManga,
     isLoading: isLoadingRelated,
@@ -519,10 +649,28 @@ export default function MangaPage() {
   const [commentContent, setCommentContent] = useState("");
   const { mutate: createComment, isPending: isCreatingComment } =
     useCreateComment();
-  const [hoverRating, setHoverRating] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [userRating, setUserRating] = useState<number | null>(null);
+  const { mutate: rateManga, isPending: isRating } = useRateManga(
+    params.id as string
+  );
+  const { setUserRating, getUserRating } = useMangaDetailStore();
+  const currentUserRating = getUserRating(params.id as string);
+  const [showAddChapterModal, setShowAddChapterModal] = useState(false);
+  const [chapterImages, setChapterImages] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const { mutate: createChapter, isPending: isCreatingChapter } =
+    useCreateChapter(params.id as string);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      chapterType: ChapterType.NORMAL,
+      number: undefined,
+      chapterTitle: "",
+    },
+  });
 
   useEffect(() => {
     if (user?.readingHistory) {
@@ -545,6 +693,15 @@ export default function MangaPage() {
 
     return () => clearTimeout(timer);
   }, [manga]);
+
+  useEffect(() => {
+    if (user?.ratings) {
+      const userRating = user.ratings.find((r) => r.manga._id === params.id);
+      if (userRating) {
+        setUserRating(params.id as string, userRating.score);
+      }
+    }
+  }, [user, params.id, setUserRating]);
 
   const handleGenreClick = (genreId: string) => {
     router.push(`/browse?genre=${genreId}`);
@@ -673,6 +830,61 @@ export default function MangaPage() {
     router.push(`/manga/${manga._id}/chapter/${firstChapter._id}`);
   };
 
+  const onSubmit = async (values: FormValues) => {
+    const chapterType = form.watch("chapterType");
+    if (chapterType === ChapterType.NORMAL && !values.number) {
+      toast.error("Số chapter là bắt buộc đối với chapter thường");
+      return;
+    }
+
+    if (chapterImages.length === 0) {
+      toast.error("Bạn chưa tải file lên");
+      return;
+    }
+
+    createChapter(
+      {
+        chapterType: values.chapterType,
+        number: values.number,
+        chapterTitle: values.chapterTitle,
+        files: chapterImages,
+      },
+      {
+        onSuccess: () => {
+          setShowAddChapterModal(false);
+          form.reset();
+          setChapterImages([]);
+          setPreviewUrls([]);
+        },
+      }
+    );
+  };
+
+  // Xử lý kéo thả file
+  const {
+    getRootProps: dropzoneGetRootProps,
+    getInputProps: dropzoneGetInputProps,
+  } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif"],
+    },
+    onDrop: (acceptedFiles: File[]) => {
+      setChapterImages(acceptedFiles);
+      // Tạo preview URLs cho các ảnh
+      const urls = acceptedFiles.map((file) => URL.createObjectURL(file));
+      setPreviewUrls(urls);
+    },
+    onDragEnter: () => setIsDragging(true),
+    onDragLeave: () => setIsDragging(false),
+  });
+
+  // Cleanup preview URLs khi component unmount
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
   if (isLoading) return <MangaLoadingSkeleton />;
   if (error) return <div>Có lỗi xảy ra</div>;
   if (!manga) return <div>Không tìm thấy truyện</div>;
@@ -799,7 +1011,7 @@ export default function MangaPage() {
                       <span className="font-bold text-black">
                         {manga.chapters?.length || 0}
                       </span>{" "}
-                      chương đã đăng
+                      chương đã đng
                     </div>
                     <div className="text-sm text-gray-700">
                       <span className="font-bold text-black">
@@ -831,6 +1043,27 @@ export default function MangaPage() {
 
             {/* Scroll area container */}
             <div className="w-[97%] mx-auto lg:w-full lg:ml-4 mt-8 h-[550px] overflow-y-auto bg-white mb-8">
+              {/* Chapter list header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <h3 className="font-bold text-black">Danh sách Chapter</h3>
+                {user?._id === manga.uploader._id && (
+                  <button
+                    onClick={() => setShowAddChapterModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-4 h-4"
+                    >
+                      <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    Thêm Chapter
+                  </button>
+                )}
+              </div>
+
               {/* Chapter list */}
               <div className="space-y-2">
                 {manga.chapters
@@ -1023,55 +1256,14 @@ export default function MangaPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onMouseLeave={() => setHoverRating(0)}
-                      >
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <div
-                            key={star}
-                            className="relative group"
-                            onMouseEnter={() => setHoverRating(star)}
-                            onClick={() => {
-                              if (!user) {
-                                router.push("/login");
-                                return;
-                              }
-                              setSelectedRating(star);
-                              setIsRatingModalOpen(true);
-                            }}
-                          >
-                            <svg
-                              className={`w-7 h-7 transition-colors duration-150 ${
-                                star <=
-                                (hoverRating || Math.round(manga.averageRating))
-                                  ? "text-yellow-400"
-                                  : "text-gray-300"
-                              } ${
-                                user ? "hover:scale-110" : ""
-                              } transform transition-transform`}
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                              <div className="bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap">
-                                {star === 1 && "Dở tệ"}
-                                {star === 2 && "Tạm được"}
-                                {star === 3 && "Bình thường"}
-                                {star === 4 && "Hay"}
-                                {star === 5 && "Tuyệt vời"}
-                              </div>
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                                <div className="border-4 border-transparent border-t-gray-800"></div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <RatingStars
+                        rating={manga.averageRating}
+                        user={user}
+                        onRate={(rating) => {
+                          setSelectedRating(rating);
+                          setIsRatingModalOpen(true);
+                        }}
+                      />
                       <span className="text-lg font-bold text-gray-700">
                         {manga.averageRating.toFixed(1)}
                       </span>
@@ -1087,13 +1279,13 @@ export default function MangaPage() {
                       <span className="text-xs text-gray-500">
                         Đăng nhập để đánh giá
                       </span>
-                    ) : userRating ? (
+                    ) : currentUserRating ? (
                       <span className="text-xs font-medium text-blue-500">
-                        Bạn đã đánh giá {userRating} sao
+                        Bạn đã đánh giá {currentUserRating} sao
                       </span>
                     ) : (
                       <span className="text-xs text-gray-500">
-                        Nhập vào sao để đánh giá
+                        Nhấp vào sao để đánh giá
                       </span>
                     )}
                   </div>
@@ -1338,24 +1530,286 @@ export default function MangaPage() {
                   setIsRatingModalOpen(false);
                   setSelectedRating(0);
                 }}
+                disabled={isRating}
               >
                 Hủy
               </button>
               <button
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                className={`px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors flex items-center gap-2 ${
+                  isRating ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={() => {
-                  // Gửi request rating ở đây
-                  // Sau khi request thành công:
-                  setUserRating(selectedRating);
-                  setIsRatingModalOpen(false);
+                  rateManga(
+                    { rating: selectedRating },
+                    {
+                      onSuccess: () => {
+                        setUserRating(params.id as string, selectedRating);
+                        setIsRatingModalOpen(false);
+                        setSelectedRating(0);
+                      },
+                    }
+                  );
                 }}
+                disabled={isRating}
               >
-                Xác nhận
+                {isRating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : (
+                  "Xác nhận"
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Add Chapter Modal */}
+      <Dialog open={showAddChapterModal} onOpenChange={setShowAddChapterModal}>
+        <DialogContent className="sm:max-w-[1000px] flex gap-4 p-6">
+          {/* Form Column */}
+          <div className="flex-1">
+            <DialogHeader>
+              <DialogTitle>Thêm Chapter Mới</DialogTitle>
+              <DialogDescription>
+                Điền thông tin chapter mới cho truyện của bạn
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="chapterType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loại Chapter</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn loại chapter" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={ChapterType.NORMAL}>
+                            Chapter thường
+                          </SelectItem>
+                          <SelectItem value={ChapterType.SPECIAL}>
+                            Chapter đặc biệt
+                          </SelectItem>
+                          <SelectItem value={ChapterType.ONESHOT}>
+                            Oneshot
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="number"
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Số Chapter{" "}
+                        {form.watch("chapterType") === "normal" && (
+                          <span className="text-destructive">*</span>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Ví dụ: 1"
+                          {...field}
+                          value={value?.toString() ?? ""}
+                          onChange={(e) =>
+                            onChange(
+                              e.target.value
+                                ? Number(e.target.value)
+                                : undefined
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="chapterTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tiêu đề Chapter (không bắt buộc)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nhập tiêu đề chapter" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-2">
+                  <FormLabel>
+                    Hình ảnh Chapter <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <div
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-6 transition-colors",
+                      "hover:border-muted-foreground/25",
+                      "flex flex-col items-center justify-center gap-2",
+                      isDragging && "border-primary"
+                    )}
+                    {...dropzoneGetRootProps()}
+                  >
+                    <input {...dropzoneGetInputProps()} />
+                    {chapterImages.length > 0 ? (
+                      <div className="text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          {chapterImages.length} ảnh đã chọn
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setChapterImages([]);
+                            setPreviewUrls([]);
+                          }}
+                          className="text-destructive hover:text-destructive/90"
+                        >
+                          Xóa tất cả
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-10 h-10 text-muted-foreground/50"
+                          stroke="currentColor"
+                          fill="none"
+                          viewBox="0 0 48 48"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <p className="text-sm text-muted-foreground">
+                          Kéo thả hoặc click để chọn ảnh
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG, GIF tối đa 10MB
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {chapterImages.length === 0 && (
+                    <p className="text-sm text-destructive">
+                      Vui lòng chọn ít nhất 1 ảnh
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddChapterModal(false)}
+                    disabled={isCreatingChapter}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isCreatingChapter || chapterImages.length === 0}
+                  >
+                    {isCreatingChapter ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      "Thêm Chapter"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+
+          {/* Preview Column */}
+          {chapterImages.length > 0 && (
+            <div className="w-[400px] border-l pl-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-sm">Xem trước ảnh</h4>
+                <p className="text-sm text-muted-foreground">
+                  {chapterImages.length} ảnh
+                </p>
+              </div>
+
+              <ScrollArea className="h-[600px] w-full pr-4">
+                <div className="space-y-4">
+                  {previewUrls.map((url, index) => (
+                    <div key={url} className="relative group">
+                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-6 w-6 rounded-full"
+                          onClick={() => {
+                            const newChapterImages = [...chapterImages];
+                            const newPreviewUrls = [...previewUrls];
+                            URL.revokeObjectURL(url);
+                            newChapterImages.splice(index, 1);
+                            newPreviewUrls.splice(index, 1);
+                            setChapterImages(newChapterImages);
+                            setPreviewUrls(newPreviewUrls);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                          </svg>
+                        </Button>
+                      </div>
+                      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden">
+                        <Image
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="mt-2 text-center text-sm text-muted-foreground">
+                        Trang {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

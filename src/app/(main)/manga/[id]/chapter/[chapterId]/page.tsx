@@ -58,7 +58,7 @@ export default function ChapterPage() {
                   <img
                     src={url}
                     alt={`Page ${index + 1}`}
-                    className="w-[1000px] h-auto object-contain"
+                    className="w-auto h-auto max-w-full object-contain"
                     loading={index < 3 ? "eager" : "lazy"}
                   />
                 </div>

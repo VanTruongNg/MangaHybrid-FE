@@ -79,7 +79,7 @@ export interface Rating {
   _id: string;
   user: UserBasic;
   manga: MangaBasic;
-  rating: number;
+  score: number;
   createdAt: string;
   updatedAt: string;
 }
