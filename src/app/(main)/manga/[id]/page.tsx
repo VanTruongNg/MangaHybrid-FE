@@ -5,7 +5,14 @@ import { useMangaDetail } from "@/hooks/use-manga-detail";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Clock, Heart, BookOpen, Download, ChevronDown } from "lucide-react";
+import {
+  Clock,
+  Heart,
+  BookOpen,
+  Download,
+  ChevronDown,
+  Smile,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import MangaLoadingSkeleton from "./loading-skeleton";
 import { useState, useRef, useEffect, memo } from "react";
@@ -53,6 +60,7 @@ import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCreateChapter } from "@/hooks/use-create-chapter";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 export enum ChapterType {
   NORMAL = "normal",
@@ -219,8 +227,14 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
     mangaId: string;
   }) => {
     const [replyContent, setReplyContent] = useState("");
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const { mutate: createReply, isPending: isCreatingReply } =
       useCreateReply();
+
+    const onEmojiClick = (emojiData: EmojiClickData) => {
+      setReplyContent((prevContent) => prevContent + emojiData.emoji);
+      setShowEmojiPicker(false);
+    };
 
     return (
       <div className="flex items-start gap-3">
@@ -270,14 +284,30 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                 </div>
               </div>
             )}
-            <textarea
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              placeholder={
-                isReplyComment ? "Trả lời bình luận..." : "Viết bình luận..."
-              }
-              className="w-full bg-transparent focus:outline-none min-h-[80px] text-xs resize-none text-gray-700"
-            />
+            <div className="relative">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder={
+                  isReplyComment ? "Trả lời bình luận..." : "Viết bình luận..."
+                }
+                className="w-full bg-transparent focus:outline-none min-h-[80px] text-xs resize-none text-gray-700 pr-8"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute bottom-2 right-2 h-6 w-6 hover:bg-gray-200 rounded-full"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <Smile className="h-4 w-4 text-gray-500" />
+              </Button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-full right-0 mb-2 z-50">
+                  <EmojiPicker onEmojiClick={onEmojiClick} />
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex justify-end mt-2">
             <button
@@ -288,7 +318,6 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
               }`}
               onClick={() => {
                 if (!replyContent.trim() || isCreatingReply) return;
-
                 createReply(
                   {
                     content: replyContent.trim(),
@@ -300,6 +329,7 @@ const CommentItem = ({ comment, manga }: CommentItemProps) => {
                     onSuccess: () => {
                       setReplyContent("");
                       onRemoveTag();
+                      setShowEmojiPicker(false);
                       setReplyingTo({ commentId: null, replyToUser: null });
                     },
                   }
@@ -662,6 +692,7 @@ export default function MangaPage() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const { mutate: createChapter, isPending: isCreatingChapter } =
     useCreateChapter(params.id as string);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -884,6 +915,11 @@ export default function MangaPage() {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previewUrls]);
+
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setCommentContent((prevContent) => prevContent + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
 
   if (isLoading) return <MangaLoadingSkeleton />;
   if (error) return <div>Có lỗi xảy ra</div>;
@@ -1162,12 +1198,28 @@ export default function MangaPage() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <textarea
-                          value={commentContent}
-                          onChange={(e) => setCommentContent(e.target.value)}
-                          placeholder="Viết bình luận..."
-                          className="w-full p-3 rounded-lg bg-gray-100 focus:bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] text-sm transition-colors text-gray-700"
-                        />
+                        <div className="relative">
+                          <textarea
+                            value={commentContent}
+                            onChange={(e) => setCommentContent(e.target.value)}
+                            placeholder="Viết bình luận..."
+                            className="w-full p-3 rounded-lg bg-gray-100 focus:bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] text-sm transition-colors text-gray-700"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute bottom-3 right-3 h-6 w-6 hover:bg-gray-200 rounded-full"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          >
+                            <Smile className="h-4 w-4 text-gray-500" />
+                          </Button>
+                          {showEmojiPicker && (
+                            <div className="absolute bottom-full right-0 mb-2 z-50">
+                              <EmojiPicker onEmojiClick={onEmojiClick} />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex justify-end mt-2">
                           <button
                             className={`px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors ${
@@ -1178,7 +1230,6 @@ export default function MangaPage() {
                             onClick={() => {
                               if (!commentContent.trim() || isCreatingComment)
                                 return;
-
                               createComment(
                                 {
                                   content: commentContent.trim(),
@@ -1187,6 +1238,7 @@ export default function MangaPage() {
                                 {
                                   onSuccess: () => {
                                     setCommentContent("");
+                                    setShowEmojiPicker(false);
                                   },
                                 }
                               );

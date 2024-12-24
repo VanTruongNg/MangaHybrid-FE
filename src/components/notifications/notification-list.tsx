@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
-import type { Notification } from "@/types/socket";
+import { Notification, NotificationType } from "@/types/socket";
 import { useEffect } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -89,8 +89,20 @@ export function NotificationList({ filter }: NotificationListProps) {
 
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium line-clamp-1">
-                    {notification.manga?.title || "Thông báo hệ thống"}
+                  <h4
+                    className={`font-medium line-clamp-1 flex items-center gap-2 ${
+                      notification.type === NotificationType.NEW_MANGA_PENDING
+                        ? "text-primary"
+                        : ""
+                    }`}
+                  >
+                    {notification.manga?.title}
+                    {notification.type ===
+                      NotificationType.NEW_MANGA_PENDING && (
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
+                        Chờ duyệt
+                      </span>
+                    )}
                   </h4>
                   <time className="shrink-0 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(notification.createdAt), {
@@ -104,11 +116,12 @@ export function NotificationList({ filter }: NotificationListProps) {
                   {notification.message}
                 </p>
 
-                {notification.chapter && (
-                  <div className="text-xs text-muted-foreground">
-                    Chương {notification.chapter.number}
-                  </div>
-                )}
+                {notification.type === NotificationType.NEW_CHAPTER &&
+                  notification.chapter && (
+                    <div className="text-xs text-muted-foreground">
+                      Chương {notification.chapter.number}
+                    </div>
+                  )}
               </div>
             </div>
           );

@@ -12,7 +12,8 @@ export interface ChapterInfo {
 }
 
 export enum NotificationType {
-  NEW_CHAPTER = 'NEW_CHAPTER'
+  NEW_CHAPTER = 'NEW_CHAPTER',
+  NEW_MANGA_PENDING = 'NEW_MANGA_PENDING'
 }
 
 export interface Notification {

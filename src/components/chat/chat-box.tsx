@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatMessage } from "./chat-message";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X, ChevronLeft } from "lucide-react";
+import { Send, X, ChevronLeft, Smile } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useChatStore } from "@/store/chat.store";
@@ -15,7 +15,11 @@ import { useChat } from "@/hooks/use-chat";
 import { useChatUIStore } from "@/store/chat-ui.store";
 import { format, isToday, isYesterday } from "date-fns";
 import type { PublicMessage, TempMessage } from "@/types/socket";
-import { handleOpenPrivateRoom, handleMarkMessageRead } from "@/lib/socket-handlers";
+import {
+  handleOpenPrivateRoom,
+  handleMarkMessageRead,
+} from "@/lib/socket-handlers";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 interface ChatBoxProps {
   onClose: () => void;
@@ -73,38 +77,37 @@ const formatTime = (timestamp: string) => {
   const now = new Date();
 
   if (isToday(date)) {
-    return format(date, 'HH:mm');
+    return format(date, "HH:mm");
   } else if (isYesterday(date)) {
-    return 'Hôm qua';
+    return "Hôm qua";
   } else if (now.getFullYear() === date.getFullYear()) {
-    return format(date, 'dd/MM');
+    return format(date, "dd/MM");
   } else {
-    return format(date, 'dd/MM/yyyy');
+    return format(date, "dd/MM/yyyy");
   }
 };
 
 export function ChatBox({ onClose }: ChatBoxProps) {
   const [message, setMessage] = useState("");
-  const { publicMessages, resendMessage, privateRooms, privateMessages } = useChatStore();
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const { publicMessages, resendMessage, privateRooms, privateMessages } =
+    useChatStore();
   const { user: currentUser } = useAuth();
   const { sendMessage, sendPrivateMessage } = useChat();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { 
-    activePrivateChat, 
-    closePrivateChat,
-    openExistingRoom
-  } = useChatUIStore();
+  const { activePrivateChat, closePrivateChat, openExistingRoom } =
+    useChatUIStore();
   const chatStore = useChatStore();
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [publicMessages, privateMessages]);
 
   useEffect(() => {
     if (activePrivateChat) {
       const messages = privateMessages[activePrivateChat.id];
       if (messages?.length) {
-        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
   }, [activePrivateChat, privateMessages]);
@@ -112,7 +115,9 @@ export function ChatBox({ onClose }: ChatBoxProps) {
   useEffect(() => {
     if (activePrivateChat) {
       const tabsList = document.querySelector('[role="tablist"]');
-      const privateTab = tabsList?.querySelector('[value="private"]') as HTMLButtonElement;
+      const privateTab = tabsList?.querySelector(
+        '[value="private"]'
+      ) as HTMLButtonElement;
       if (privateTab) {
         privateTab.click();
       }
@@ -142,17 +147,21 @@ export function ChatBox({ onClose }: ChatBoxProps) {
 
     let receiverId: string;
 
-    if (activePrivateChat.type === 'virtual') {
+    if (activePrivateChat.type === "virtual") {
       receiverId = activePrivateChat.id;
     } else {
-      const room = chatStore.privateRooms.find(r => r._id === activePrivateChat.id);
-      const otherUser = room?.participants.find(p => p._id !== currentUser._id);
+      const room = chatStore.privateRooms.find(
+        (r) => r._id === activePrivateChat.id
+      );
+      const otherUser = room?.participants.find(
+        (p) => p._id !== currentUser._id
+      );
       if (!otherUser) return;
       receiverId = otherUser._id;
     }
 
     const tempId = await sendPrivateMessage(trimmedMessage, receiverId);
-    
+
     if (tempId) {
       setMessage("");
     }
@@ -161,29 +170,29 @@ export function ChatBox({ onClose }: ChatBoxProps) {
   const renderPrivateChatHeader = () => {
     if (!activePrivateChat) return null;
 
-    if (activePrivateChat.type === 'virtual') {
+    if (activePrivateChat.type === "virtual") {
       const user = activePrivateChat.user;
       return (
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.avatarUrl} />
-            <AvatarFallback>
-              {user?.name[0].toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{user?.name[0].toUpperCase()}</AvatarFallback>
           </Avatar>
           <span className="font-medium">{user?.name}</span>
         </div>
       );
     } else {
-      const room = chatStore.privateRooms.find(r => r._id === activePrivateChat.id);
-      const otherUser = room?.participants.find(p => p._id !== currentUser?._id);
+      const room = chatStore.privateRooms.find(
+        (r) => r._id === activePrivateChat.id
+      );
+      const otherUser = room?.participants.find(
+        (p) => p._id !== currentUser?._id
+      );
       return (
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={otherUser?.avatarUrl} />
-            <AvatarFallback>
-              {otherUser?.name[0].toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{otherUser?.name[0].toUpperCase()}</AvatarFallback>
           </Avatar>
           <span className="font-medium">{otherUser?.name}</span>
         </div>
@@ -194,23 +203,25 @@ export function ChatBox({ onClose }: ChatBoxProps) {
   const renderRoomsList = () => (
     <ScrollArea className="flex-1">
       <div className="divide-y">
-        {privateRooms.map(room => {
-          const otherUser = room.participants.find(p => p._id !== currentUser?._id);
+        {privateRooms.map((room) => {
+          const otherUser = room.participants.find(
+            (p) => p._id !== currentUser?._id
+          );
           const isLastMessageFromMe = room.lastSender?._id === currentUser?._id;
-          
+
           const roomMessages = privateMessages[room._id] || [];
           const lastMessage = roomMessages[roomMessages.length - 1];
-          
+
           return (
-            <div 
+            <div
               key={room._id}
               className="p-4 hover:bg-accent cursor-pointer"
               onClick={() => {
                 chatStore.markRoomAsRead(room._id);
-                
+
                 openExistingRoom(room._id);
                 handleOpenPrivateRoom(room._id);
-                if (lastMessage && '_id' in lastMessage) {
+                if (lastMessage && "_id" in lastMessage) {
                   handleMarkMessageRead(lastMessage._id);
                 }
               }}
@@ -220,14 +231,16 @@ export function ChatBox({ onClose }: ChatBoxProps) {
                   <AvatarImage src={otherUser?.avatarUrl} />
                   <AvatarFallback>{otherUser?.name[0]}</AvatarFallback>
                 </Avatar>
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{otherUser?.name}</p>
                   {room.lastMessage && (
                     <p className="text-sm text-muted-foreground truncate">
                       {room.lastSender ? (
                         <>
-                          {isLastMessageFromMe ? 'Bạn: ' : `${room.lastSender.name}: `}
+                          {isLastMessageFromMe
+                            ? "Bạn: "
+                            : `${room.lastSender.name}: `}
                           {room.lastMessage}
                         </>
                       ) : (
@@ -261,12 +274,14 @@ export function ChatBox({ onClose }: ChatBoxProps) {
   const renderPrivateMessages = () => {
     if (!activePrivateChat) return null;
 
-    const roomId = activePrivateChat.type === 'virtual' 
-      ? `virtual_${activePrivateChat.id}`
-      : activePrivateChat.id;
+    const roomId =
+      activePrivateChat.type === "virtual"
+        ? `virtual_${activePrivateChat.id}`
+        : activePrivateChat.id;
 
     const messages = [...(privateMessages[roomId] || [])].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
     return (
@@ -276,7 +291,7 @@ export function ChatBox({ onClose }: ChatBoxProps) {
           const isGrouped = shouldGroupMessages(message, prevMessage);
           const showDateSection = shouldShowDateSection(message, prevMessage);
 
-          const messageKey = 'tempId' in message ? message.tempId : message._id;
+          const messageKey = "tempId" in message ? message.tempId : message._id;
 
           return (
             <React.Fragment key={messageKey}>
@@ -300,8 +315,8 @@ export function ChatBox({ onClose }: ChatBoxProps) {
                 timestamp={message.createdAt}
                 senderId={message.sender._id}
                 isGrouped={isGrouped}
-                isSending={'isSending' in message ? message.isSending : false}
-                error={'error' in message ? message.error : undefined}
+                isSending={"isSending" in message ? message.isSending : false}
+                error={"error" in message ? message.error : undefined}
               />
             </React.Fragment>
           );
@@ -309,6 +324,11 @@ export function ChatBox({ onClose }: ChatBoxProps) {
         <div ref={scrollRef} />
       </div>
     );
+  };
+
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setMessage((prevMessage) => prevMessage + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   return (
@@ -327,7 +347,10 @@ export function ChatBox({ onClose }: ChatBoxProps) {
         </div>
       </div>
 
-      <Tabs defaultValue={activePrivateChat ? "private" : "public"} className="w-full">
+      <Tabs
+        defaultValue={activePrivateChat ? "private" : "public"}
+        className="w-full"
+      >
         <div className="border-b">
           <TabsList className="w-full h-12 bg-transparent gap-2 p-1">
             <TabsTrigger value="public" className="flex-1 h-full">
@@ -345,7 +368,8 @@ export function ChatBox({ onClose }: ChatBoxProps) {
               <div className="flex flex-col justify-end">
                 <div>
                   {publicMessages.map((msg, index) => {
-                    const prevMsg = index > 0 ? publicMessages[index - 1] : undefined;
+                    const prevMsg =
+                      index > 0 ? publicMessages[index - 1] : undefined;
                     const isGrouped = shouldGroupMessages(msg, prevMsg);
                     const showDateSection = shouldShowDateSection(msg, prevMsg);
 
@@ -362,7 +386,10 @@ export function ChatBox({ onClose }: ChatBoxProps) {
                           user={msg.sender.name}
                           message={msg.content}
                           timestamp={msg.createdAt}
-                          avatar={msg.sender.avatarUrl || "https://github.com/shadcn.png"}
+                          avatar={
+                            msg.sender.avatarUrl ||
+                            "https://github.com/shadcn.png"
+                          }
                           senderId={msg.sender._id}
                           isGrouped={isGrouped}
                           isSending={"tempId" in msg && msg.isSending}
@@ -386,11 +413,27 @@ export function ChatBox({ onClose }: ChatBoxProps) {
 
             <div className="border-t p-4">
               <form className="flex gap-2" onSubmit={handleSendPublicMessage}>
-                <Input
-                  placeholder="Nhập tin nhắn..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Nhập tin nhắn..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  >
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-full right-0 mb-2">
+                      <EmojiPicker onEmojiClick={onEmojiClick} />
+                    </div>
+                  )}
+                </div>
                 <Button type="submit" size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
@@ -420,12 +463,31 @@ export function ChatBox({ onClose }: ChatBoxProps) {
                 </ScrollArea>
 
                 <div className="border-t p-4">
-                  <form className="flex gap-2" onSubmit={handleSendPrivateMessage}>
-                    <Input
-                      placeholder="Nhập tin nhắn riêng tư..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
+                  <form
+                    className="flex gap-2"
+                    onSubmit={handleSendPrivateMessage}
+                  >
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Nhập tin nhắn riêng tư..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      >
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full right-0 mb-2">
+                          <EmojiPicker onEmojiClick={onEmojiClick} />
+                        </div>
+                      )}
+                    </div>
                     <Button type="submit" size="icon">
                       <Send className="h-4 w-4" />
                     </Button>

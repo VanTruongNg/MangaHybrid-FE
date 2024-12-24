@@ -1,22 +1,17 @@
-import { AdminGuard } from '@/components/auth/admin-guard';
-import { Navbar } from '@/components/navbar';
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminGuard } from "@/components/auth/admin-guard";
 
-export default function AdminLayout({
-  children,
-}: {
+interface AdminLayoutProps {
   children: React.ReactNode;
-}) {
+}
+
+export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <AdminGuard>
-      <div className="relative flex min-h-screen flex-col">
-        <Navbar />
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          </div>
-          <main>{children}</main>
-        </div>
+      <div className="flex min-h-screen">
+        <AdminSidebar />
+        <main className="flex-1 p-8">{children}</main>
       </div>
     </AdminGuard>
   );
-} 
+}

@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatarUrl?: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "uploader";
   isVerified: boolean;
   followers: UserBasic[];
   following: UserBasic[];

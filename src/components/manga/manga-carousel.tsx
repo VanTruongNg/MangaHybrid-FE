@@ -8,10 +8,13 @@ import { useHome } from "@/hooks/use-home";
 import { cn } from "@/lib/utils";
 import { FastAverageColor } from "fast-average-color";
 import { useGradientStore } from "@/store/use-gradient-store";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function MangaCarousel() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { randomManga, isLoading } = useHome();
+  const router = useRouter();
   const [autoplay] = useState(
     Autoplay({ delay: 5000, stopOnInteraction: false })
   );
@@ -129,42 +132,47 @@ export function MangaCarousel() {
               )}
               style={{ opacity: selectedIndex === index ? 1 : 0.3 }}
             >
-              <div className="relative aspect-[21/10] overflow-hidden rounded-xl">
-                <Image
-                  src={manga.bannerImg ?? manga.coverImg ?? "/placeholder.jpg"}
-                  alt={manga.title}
-                  width={1920}
-                  height={912}
-                  className="w-full h-full object-cover"
-                  sizes="(max-width: 1400px) 65vw"
-                  priority
-                  quality={100}
-                  draggable={false}
-                  crossOrigin="anonymous"
-                />
-                <div className="absolute inset-0 z-[20] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 z-[30]">
-                  <div className="flex flex-col gap-2">
-                    <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white line-clamp-2">
-                      {manga.title}
-                    </h2>
-                    <p className="text-xs md:text-sm lg:text-base text-gray-200 line-clamp-2 max-w-[40%]">
-                      {manga.description || "Không có mô tả"}
-                    </p>
-                  </div>
-                  <div className="absolute bottom-6 md:bottom-8 right-6 md:right-8">
-                    <button
-                      className="relative z-[110] bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white px-4 py-1.5 md:px-6 md:py-2 rounded-lg text-sm md:text-base transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      XEM THÔNG TIN
-                    </button>
+              <Link href={`/manga/${manga._id}`} className="block">
+                <div className="relative aspect-[21/10] overflow-hidden rounded-xl">
+                  <Image
+                    src={
+                      manga.bannerImg ?? manga.coverImg ?? "/placeholder.jpg"
+                    }
+                    alt={manga.title}
+                    width={1920}
+                    height={912}
+                    className="w-full h-full object-cover"
+                    sizes="(max-width: 1400px) 65vw"
+                    priority
+                    quality={100}
+                    draggable={false}
+                    crossOrigin="anonymous"
+                  />
+                  <div className="absolute inset-0 z-[20] bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 z-[30]">
+                    <div className="flex flex-col gap-2">
+                      <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white line-clamp-2">
+                        {manga.title}
+                      </h2>
+                      <p className="text-xs md:text-sm lg:text-base text-gray-200 line-clamp-2 max-w-[40%]">
+                        {manga.description || "Không có mô tả"}
+                      </p>
+                    </div>
+                    <div className="absolute bottom-6 md:bottom-8 right-6 md:right-8">
+                      <button
+                        className="relative z-[110] bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white px-4 py-1.5 md:px-6 md:py-2 rounded-lg text-sm md:text-base transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(`/manga/${manga._id}`);
+                        }}
+                      >
+                        XEM THÔNG TIN
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           ))}
         </div>
