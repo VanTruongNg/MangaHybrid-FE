@@ -10,40 +10,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ImageIcon, CheckCircle2, XCircle } from "lucide-react";
+import { Search, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { usePendingMangas } from "@/hooks/use-pending-mangas";
+import { useApproveManga } from "@/hooks/use-approve-manga";
 import Image from "next/image";
 import { useDebounce } from "@/hooks/use-debounce";
-
-const STATUS_MAP = {
-  pending: {
-    label: "Chờ duyệt",
-    color: "bg-yellow-500/15 text-yellow-500 hover:bg-yellow-500/25",
-  },
-  approved: {
-    label: "Đã duyệt",
-    color: "bg-green-500/15 text-green-500 hover:bg-green-500/25",
-  },
-  rejected: {
-    label: "Đã từ chối",
-    color: "bg-red-500/15 text-red-500 hover:bg-red-500/25",
-  },
-} as const;
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AdminMangaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 500);
+  const { toast } = useToast();
 
-  const { data, isLoading } = usePendingMangas({
+  const { data } = usePendingMangas({
     page: 1,
     limit: 10,
   });
 
+  const approveManga = useApproveManga();
+
   const filteredData = data?.mangas.filter((manga) =>
     manga.title.toLowerCase().includes(debouncedQuery.toLowerCase())
   );
+
+  const handleApprove = async (id: string) => {
+    try {
+      await approveManga.mutateAsync(id);
+      toast({
+        title: "Thành công",
+        description: "Đã duyệt truyện",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể duyệt truyện",
+      });
+    }
+  };
 
   return (
     <div className="container py-6 space-y-6">
@@ -121,6 +127,8 @@ export default function AdminMangaPage() {
                       variant="ghost"
                       size="icon"
                       className="hover:text-green-500 hover:bg-green-500/10"
+                      onClick={() => handleApprove(manga._id)}
+                      disabled={approveManga.isPending}
                     >
                       <CheckCircle2 className="h-4 w-4" />
                     </Button>

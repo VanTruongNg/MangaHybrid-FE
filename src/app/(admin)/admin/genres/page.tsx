@@ -19,37 +19,60 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Genre, useGenres } from "@/hooks/use-genres";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  Genre,
+  useGenres,
+  useAddGenre,
+  useUpdateGenre,
+  useDeleteGenre,
+} from "@/hooks/use-genres";
+import { cn } from "@/lib/utils";
+import Fuse from "fuse.js";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+type FuseResult = {
+  item: Genre;
+  refIndex: number;
+};
 
 export default function GenresPage() {
   const { data: genres, isLoading } = useGenres();
-  const queryClient = useQueryClient();
+  const addGenre = useAddGenre();
+  const updateGenre = useUpdateGenre();
+  const deleteGenre = useDeleteGenre();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null);
   const [formData, setFormData] = useState({
     name: "",
   });
+  const [searchResults, setSearchResults] = useState<FuseResult[]>([]);
   const { toast } = useToast();
+
+  const handleNameChange = (value: string) => {
+    setFormData({ name: value });
+
+    if (!genres || !value) {
+      setSearchResults([]);
+      return;
+    }
+
+    const fuse = new Fuse(genres, {
+      keys: ["name"],
+      threshold: 0.4,
+    });
+
+    const results = fuse.search(value);
+    setSearchResults(results);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/genres", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error("Có lỗi xảy ra");
-
-      await queryClient.invalidateQueries({ queryKey: ["genres"] });
+      await addGenre.mutateAsync(formData);
       setIsAddDialogOpen(false);
       setFormData({ name: "" });
       toast({
@@ -70,17 +93,10 @@ export default function GenresPage() {
     if (!selectedGenre) return;
 
     try {
-      const response = await fetch(`/api/genres/${selectedGenre._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      await updateGenre.mutateAsync({
+        id: selectedGenre._id,
+        data: formData,
       });
-
-      if (!response.ok) throw new Error("Có lỗi xảy ra");
-
-      await queryClient.invalidateQueries({ queryKey: ["genres"] });
       setIsEditDialogOpen(false);
       setSelectedGenre(null);
       setFormData({ name: "" });
@@ -101,13 +117,7 @@ export default function GenresPage() {
     if (!window.confirm("Bạn có chắc chắn muốn xóa thể loại này?")) return;
 
     try {
-      const response = await fetch(`/api/genres/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Có lỗi xảy ra");
-
-      await queryClient.invalidateQueries({ queryKey: ["genres"] });
+      await deleteGenre.mutateAsync(id);
       toast({
         title: "Thành công",
         description: "Đã xóa thể loại",
@@ -123,40 +133,44 @@ export default function GenresPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tên thể loại</TableHead>
-                <TableHead>Số truyện</TableHead>
-                <TableHead className="w-[100px]">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[...Array(5)].map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-32" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-48" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      <div className="h-[calc(100vh-65px)]">
+        <ScrollArea className="h-full">
+          <div className="container py-6 space-y-6">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên thể loại</TableHead>
+                    <TableHead>Số truyện</TableHead>
+                    <TableHead className="w-[100px]">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(5)].map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </ScrollArea>
       </div>
     );
   }
@@ -164,80 +178,107 @@ export default function GenresPage() {
   if (!genres) return null;
 
   return (
-    <div className="container py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Quản lý thể loại</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Thêm thể loại</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thêm thể loại mới</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Tên thể loại</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Thêm
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tên thể loại</TableHead>
-              <TableHead>Số truyện</TableHead>
-              <TableHead className="w-[100px]">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {genres.map((genre) => (
-              <TableRow key={genre._id}>
-                <TableCell className="font-medium">{genre.name}</TableCell>
-                <TableCell>{genre.manga.length}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedGenre(genre);
-                        setFormData({
-                          name: genre.name,
-                        });
-                        setIsEditDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(genre._id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+    <div className="h-[calc(100vh-65px)]">
+      <ScrollArea className="h-full">
+        <div className="container py-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Quản lý thể loại</h1>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Thêm thể loại</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Thêm thể loại mới</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Tên thể loại</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        className="pl-9"
+                        placeholder="Nhập tên thể loại..."
+                        required
+                      />
+                      {searchResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-background border rounded-lg shadow-lg z-10">
+                          <div className="text-sm font-medium text-muted-foreground mb-2">
+                            Thể loại tương tự:
+                          </div>
+                          <div className="space-y-1">
+                            {searchResults.map(({ item, refIndex }) => (
+                              <div
+                                key={refIndex}
+                                className={cn(
+                                  "px-2 py-1.5 rounded-md text-sm",
+                                  "bg-accent/50"
+                                )}
+                              >
+                                {item.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  <Button type="submit" className="w-full">
+                    Thêm
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tên thể loại</TableHead>
+                  <TableHead>Số truyện</TableHead>
+                  <TableHead className="w-[100px]">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {genres.map((genre) => (
+                  <TableRow key={genre._id}>
+                    <TableCell className="font-medium">{genre.name}</TableCell>
+                    <TableCell>{genre.manga.length}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedGenre(genre);
+                            setFormData({
+                              name: genre.name,
+                            });
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(genre._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </ScrollArea>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
