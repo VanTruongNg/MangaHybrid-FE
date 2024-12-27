@@ -61,6 +61,7 @@ import { useDropzone } from "react-dropzone";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCreateChapter } from "@/hooks/use-create-chapter";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import { useDownloadChapter } from "@/hooks/use-download-chapter";
 
 export enum ChapterType {
   NORMAL = "normal",
@@ -693,6 +694,20 @@ export default function MangaPage() {
   const { mutate: createChapter, isPending: isCreatingChapter } =
     useCreateChapter(params.id as string);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [downloadingChapterId, setDownloadingChapterId] = useState<
+    string | null
+  >(null);
+  const [downloadedChapters, setDownloadedChapters] = useState<
+    Record<string, boolean>
+  >({});
+  const { downloadChapter, isChapterDownloaded } = useDownloadChapter({
+    onSuccess: () => {
+      toast.success("Đã tải chapter thành công");
+    },
+    onError: () => {
+      toast.error("Có lỗi xảy ra khi tải chapter");
+    },
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -742,7 +757,7 @@ export default function MangaPage() {
     let latestUpdate = null;
     try {
       if (manga?.chapters?.length) {
-        const dates = manga.chapters.map((chapter) => {
+        const dates = manga.chapters.map((chapter: { createdAt: string }) => {
           try {
             return new Date(chapter.createdAt).getTime();
           } catch {
@@ -920,6 +935,23 @@ export default function MangaPage() {
     setCommentContent((prevContent) => prevContent + emojiData.emoji);
     setShowEmojiPicker(false);
   };
+
+  // Kiểm tra các chapter đã tải
+  useEffect(() => {
+    const checkDownloadedChapters = async () => {
+      if (!manga?.chapters) return;
+
+      const downloadStatus: Record<string, boolean> = {};
+      await Promise.all(
+        manga.chapters.map(async (chapter) => {
+          downloadStatus[chapter._id] = await isChapterDownloaded(chapter._id);
+        })
+      );
+      setDownloadedChapters(downloadStatus);
+    };
+
+    checkDownloadedChapters();
+  }, [manga?.chapters, isChapterDownloaded]);
 
   if (isLoading) return <MangaLoadingSkeleton />;
   if (error) return <div>Có lỗi xảy ra</div>;
@@ -1150,12 +1182,53 @@ export default function MangaPage() {
                             </div>
                           </div>
                         </div>
-                        <button
-                          className="p-2 text-gray-500 hover:text-gray-700 bg-gray-300 hover:bg-gray-400 rounded-full transition-all"
-                          title="Tải xuống"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className={cn(
+                              "p-2 text-gray-500 hover:text-gray-700 rounded-full transition-all relative",
+                              downloadedChapters[chapter._id]
+                                ? "bg-blue-100 hover:bg-blue-200"
+                                : "bg-gray-300 hover:bg-gray-400",
+                              downloadingChapterId === chapter._id &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                            title={
+                              downloadedChapters[chapter._id]
+                                ? "Đã tải xuống"
+                                : "Tải xuống"
+                            }
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (downloadingChapterId) return;
+
+                              setDownloadingChapterId(chapter._id);
+                              try {
+                                await downloadChapter(chapter._id, manga._id);
+                                setDownloadedChapters((prev) => ({
+                                  ...prev,
+                                  [chapter._id]: true,
+                                }));
+                              } finally {
+                                setDownloadingChapterId(null);
+                              }
+                            }}
+                            disabled={downloadingChapterId === chapter._id}
+                          >
+                            {downloadingChapterId === chapter._id ? (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            ) : (
+                              <Download
+                                className={cn(
+                                  "w-4 h-4",
+                                  downloadedChapters[chapter._id] &&
+                                    "text-blue-500"
+                                )}
+                              />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1402,17 +1475,17 @@ export default function MangaPage() {
                     ))}
                   </div>
                 ) : relatedManga.length > 0 ? (
-                  relatedManga.map((manga) => (
+                  relatedManga.map((relatedManga: MangaDetail) => (
                     <div
-                      key={manga._id}
+                      key={relatedManga._id}
                       className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
-                      onClick={() => router.push(`/manga/${manga._id}`)}
+                      onClick={() => router.push(`/manga/${relatedManga._id}`)}
                     >
                       <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0">
-                        {manga.coverImg ? (
+                        {relatedManga.coverImg ? (
                           <Image
-                            src={manga.coverImg}
-                            alt={manga.title}
+                            src={relatedManga.coverImg}
+                            alt={relatedManga.title}
                             fill
                             className="object-cover"
                           />
@@ -1422,13 +1495,13 @@ export default function MangaPage() {
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-gray-600 text-sm mb-1 line-clamp-2">
-                          {manga.title}
+                          {relatedManga.title}
                         </h4>
                         <p className="text-xs text-gray-500">
-                          {manga.chapters?.length > 0 ? (
+                          {relatedManga.chapters?.length > 0 ? (
                             <>
                               <span className="font-semibold tracking-wide text-gray-500">
-                                {manga.chapters[0].chapterName.replace(
+                                {relatedManga.chapters[0].chapterName.replace(
                                   "Chap",
                                   "C."
                                 )}
@@ -1436,7 +1509,7 @@ export default function MangaPage() {
                               <span className="mx-1">-</span>
                               <span className="uppercase">
                                 {formatDistanceToNow(
-                                  new Date(manga.chapters[0].createdAt),
+                                  new Date(relatedManga.chapters[0].createdAt),
                                   {
                                     addSuffix: true,
                                     locale: vi,
