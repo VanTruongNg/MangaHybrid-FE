@@ -63,6 +63,17 @@ import { useCreateChapter } from "@/hooks/use-create-chapter";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useDownloadChapter } from "@/hooks/use-download-chapter";
 
+interface RelatedManga {
+  _id: string;
+  title: string;
+  coverImg: string;
+  chapters: {
+    _id: string;
+    chapterName: string;
+    createdAt: string;
+  }[];
+}
+
 export enum ChapterType {
   NORMAL = "normal",
   SPECIAL = "special",
@@ -1475,7 +1486,7 @@ export default function MangaPage() {
                     ))}
                   </div>
                 ) : relatedManga.length > 0 ? (
-                  relatedManga.map((relatedManga: MangaDetail) => (
+                  relatedManga.map((relatedManga: RelatedManga) => (
                     <div
                       key={relatedManga._id}
                       className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
